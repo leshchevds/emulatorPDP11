@@ -10,13 +10,15 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = emul
 TEMPLATE = app
-
+CONFIG += c++11
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    EmulatorPDP11.cpp
+    EmulatorPDP11.cpp \
+    decoder.cpp
 
 HEADERS  += mainwindow.h \
-    EmulatorPDP11.h
+    EmulatorPDP11.h \
+    decoder.h
 
 FORMS    += mainwindow.ui
