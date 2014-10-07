@@ -3,6 +3,9 @@
 
 #include <QImage>
 #include <QPixmap>
+#include <QFuture>
+#include <QtConcurrent>
+#include <QThread>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -11,10 +14,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     if (parent == 0) {
         emul_ = new EmulatorPDP11();
+        future_ =  QtConcurrent::run(this, &MainWindow::UpdateFrames);
     }
 }
 
 MainWindow::~MainWindow() {
+    isWorking_ = 0;
+    if (emul_) {
+       future_.waitForFinished();
+       delete emul_;
+    }
     delete ui;
 }
 
@@ -27,8 +36,17 @@ void MainWindow::on_pushButton_clicked() {
 }
 
 void MainWindow::on_pushButton_2_clicked() {
-    UpdateFrames();
+
 }
+
+class Thread : public QThread
+{
+public:
+    static void msleep(int ms)
+    {
+        QThread::msleep(ms);
+    }
+};
 
 void MainWindow::UpdateFrames() {
     QImage::Format format = QImage::Format_Mono;
@@ -37,12 +55,16 @@ void MainWindow::UpdateFrames() {
     const char* frame = emul_->videomem();
 
     while (1) {
-        for (int i = 0; i < 512; ++i) {
-            for (int j = 0; j < 256; ++j) {
-                image.setPixel(i,j,frame[(i * 256 + j) / 8] & (1 << (j % 8)));
+        if (!isWorking_) {
+            break;
+        }
+        for (int i = 0; i < 256; ++i) {
+            for (int j = 0; j < 512; ++j) {
+                image.setPixel(j, i, (frame[(i*512 + j) / 8] & (1 << (j % 8))) == 1);
             }
         }
         ui->label->setPixmap(QPixmap::fromImage(image));
-        QThread::msleep(100);
+        Thread::msleep(100);
+
     }
 }
