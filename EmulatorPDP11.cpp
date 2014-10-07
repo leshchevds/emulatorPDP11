@@ -1,16 +1,47 @@
 #include "EmulatorPDP11.h"
 
 #include <cstring>
+#include <fstream>
+#include <QPixmap>
+
 
 EmulatorPDP11::EmulatorPDP11() {
     mem_ = new char[64*1024];
-    memset(mem_, 0xf0, 64*1024);
+    char* video = mem_ + 32*1024;
+
+    memset(mem_, 0xff, 64*1024);
+
+
+
+    std::fstream file;
+    file.open("D:\\emulatorPDP11\\screen.bmp", std::fstream::in | std::fstream::binary);
+    file.seekg(62+512/2);
+    file.read(mem_ + 48*1024 + 512, 16*1024 - 512);
+
+    for (int i = 4; i < 252; ++i) {
+        for (int j = 0; j < 512; ++j) {
+            video[i*64 + j/8] &= (255-(1<<(j%8)));
+            video[i*64 + j/8] |= (1<<(j%8))* !(bool)(mem_[48*1024 + 512 + i*64 + j/8] & (1<<(8-j%8)));
+        }
+    }
+
+    for (int i = 0; i < 256; ++i) {
+        video[i] = 0;
+    }
+    for (int i = 16128; i < 16384; ++i) {
+        video[i] = 0;
+    }
+    for (int i = 4; i < 252; ++i) {
+        video[i*64 + 0] &= 16*15;
+        video[i*64 + 63] &= 15;
+    }
+
 }
 
 
 EmulatorPDP11::EmulatorPDP11(const char* source, size_t count) :
                     EmulatorPDP11() {
-    memcpy(mem_, source, count);
+    //memcpy(mem_, source, count);
 }
 
 
