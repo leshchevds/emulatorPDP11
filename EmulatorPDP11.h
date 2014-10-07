@@ -10,24 +10,14 @@ public:
     explicit EmulatorPDP11(const char* source, size_t count = 16*1024) ;
     ~EmulatorPDP11();
 
-    const char* videomem();
+
     size_t WriteROM(const char* source, size_t count = 16*1024);
 
-    uint16_t reg(uint8_t num) {
-        if (num < 8) {
-            return regs_[num];
-        } else {
-            throw;
-        }
-    }
+    uint16_t reg(uint8_t num);
 
-    uint16_t psw() {
-        return psw_;
-    }
-
-    bool isRunning() {
-        return running_;
-    }
+    uint16_t psw() {return psw_;}
+    bool isRunning() {return running_;}
+    const char* videomem() {return mem_ + 32 * 1024;}
 
     void Run();
     void Stop();

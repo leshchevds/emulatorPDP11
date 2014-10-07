@@ -11,12 +11,11 @@ EmulatorPDP11::EmulatorPDP11() {
 
     memset(mem_, 0xff, 64*1024);
 
-
-
     std::fstream file;
     file.open("D:\\emulatorPDP11\\screen.bmp", std::fstream::in | std::fstream::binary);
     file.seekg(62+512/2);
     file.read(mem_ + 48*1024 + 512, 16*1024 - 512);
+    file.close();
 
     for (int i = 4; i < 252; ++i) {
         for (int j = 0; j < 512; ++j) {
@@ -41,7 +40,7 @@ EmulatorPDP11::EmulatorPDP11() {
 
 EmulatorPDP11::EmulatorPDP11(const char* source, size_t count) :
                     EmulatorPDP11() {
-    //memcpy(mem_, source, count);
+    memcpy(mem_, source, count);
 }
 
 
@@ -49,8 +48,12 @@ EmulatorPDP11::~EmulatorPDP11() {
     delete mem_;
 }
 
-const char* EmulatorPDP11::videomem() {
-    return mem_ + 32 * 1024;
+uint16_t EmulatorPDP11::reg(uint8_t num) {
+    if (num < 8) {
+        return regs_[num];
+    } else {
+        throw;
+    }
 }
 
 size_t EmulatorPDP11::WriteROM(const char* source, size_t count) {
