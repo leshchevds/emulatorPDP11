@@ -4,6 +4,7 @@
 
 EmulatorPDP11::EmulatorPDP11() {
     mem_ = new char[64*1024];
+    memset(mem_, 0xf0, 64*1024);
 }
 
 

@@ -60,7 +60,7 @@ void MainWindow::UpdateFrames() {
         }
         for (int i = 0; i < 256; ++i) {
             for (int j = 0; j < 512; ++j) {
-                image.setPixel(j, i, (frame[(i*512 + j) / 8] & (1 << (j % 8))) == 1);
+                image.setPixel(j, i, (bool)(frame[(i*512 + j) / 8] & (1 << (j % 8))));
             }
         }
         ui->label->setPixmap(QPixmap::fromImage(image));
