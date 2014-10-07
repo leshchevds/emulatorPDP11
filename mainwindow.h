@@ -4,7 +4,7 @@
 #include "EmulatorPDP11.h"
 
 #include <QMainWindow>
-
+#include <QFuture>
 
 namespace Ui {
 class MainWindow;
@@ -26,7 +26,9 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    EmulatorPDP11 *emul_;
+    EmulatorPDP11 *emul_ = 0;
+    QFuture<void> future_;
+    bool isWorking_ = 1;
 
     void UpdateFrames();
 
