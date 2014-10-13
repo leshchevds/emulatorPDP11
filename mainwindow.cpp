@@ -54,7 +54,7 @@ void MainWindow::UpdateFrames() {
 
     const char* frame = emul_->videomem();
 
-    while (1) {
+    while (true) {
         if (!isWorking_) {
             break;
         }
