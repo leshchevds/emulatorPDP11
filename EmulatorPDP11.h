@@ -35,7 +35,7 @@ public:
     void Reset();
 
 
-    std::string Decode(const u_int16_t* &pc); // could require up to 3 words allocated
+    std::string Decode(u_int16_t* &pc); // could require up to 3 words allocated NOT CONST!!! DECODER CHANGING PC!!!
 
 private:
 

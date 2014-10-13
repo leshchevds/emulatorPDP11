@@ -217,17 +217,17 @@ std::string EmulatorPDP11::Decode(u_int16_t* &pc){
         }
         break;
     }
-    u_uint16_t masked_pc = (*pc)&(masks_[i]);
+    u_int16_t masked_pc = (*pc)&(masks_[i]);
     i = 46;
     left = 0;
     right = 86;
     while (true){
-        if(tab[i]>masked_pc){
+        if(tab[i].opcode>masked_pc){
             right = i;
             i = (right+left)/2;
             continue;
         }
-        if(tab[i+1]<=masked_pc){
+        if(tab[i+1].opcode<=masked_pc){
             left = i;
             i = (right+left)/2;
             continue;
