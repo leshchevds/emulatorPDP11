@@ -55,6 +55,7 @@ private:
 #include "decoders.inc"
 #include "operations.inc"
 #include "tab.inc"
+    std::string step_and_list();
 };
 
 #endif // EMULATORPDP11_H

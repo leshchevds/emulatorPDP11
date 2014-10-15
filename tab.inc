@@ -1,6 +1,7 @@
 #ifndef TAB_INC
 #define TAB_INC
-    typedef std::string (EmulatorPDP11::*d_func)(u_int16_t*);
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+    typedef std::string (EmulatorPDP11::*d_func)(void* ,void*);
     typedef void (EmulatorPDP11::*e_func)(void* ,void*);
 
     struct instr_t {
@@ -8,8 +9,6 @@
         char* instr;
         d_func f;
         e_func e;
-        //std::string (EmulatorPDP11::*d_func)(u_int16_t*&);
-        //void (EmulatorPDP11::*e_func)(void* ,void*);
     };
     //DISCUSS? decode_zero_op -> NULL
 
@@ -61,8 +60,8 @@
         {0006600,   "mtpi", &EmulatorPDP11::decode_one_pl,  &EmulatorPDP11::op_mtpi},
         {0006700,   "sxt",  &EmulatorPDP11::decode_one_op,  &EmulatorPDP11::op_sxt},
         {0010000,   "mov",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_mov},
-        {0020000,   "cmp",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_cmp},
-        {0030000,   "bit",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_bit},
+        {0020000,   "cmp",  &EmulatorPDP11::decode_two_op_no_check,  &EmulatorPDP11::op_cmp},
+        {0030000,   "bit",  &EmulatorPDP11::decode_two_op_no_check,  &EmulatorPDP11::op_bit},
         {0040000,   "bic",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_bic},
         {0050000,   "bis",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_bis},
         {0060000,   "add",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_add},
@@ -99,8 +98,8 @@
         //{0106600,   "mtpd", decode_one_op,  op_mtpd},
         //{0106700,   "mfps", decode_one_op,  op_mfpd},
         {0110000,   "movb", &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_movb},
-        {0120000,   "cmpb", &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_cmpb},
-        {0130000,   "bitb", &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_bitb},
+        {0120000,   "cmpb", &EmulatorPDP11::decode_two_op_no_check,  &EmulatorPDP11::op_cmpb},
+        {0130000,   "bitb", &EmulatorPDP11::decode_two_op_no_check,  &EmulatorPDP11::op_bitb},
         {0140000,   "bicb", &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_bicb},
         {0150000,   "bisb", &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_bisb},
         {0160000,   "sub",  &EmulatorPDP11::decode_two_op,  &EmulatorPDP11::op_sub}
