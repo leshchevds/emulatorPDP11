@@ -7,8 +7,8 @@
     struct instr_t {
         u_int16_t opcode;
         char* instr;
-        d_func f;
-        e_func e;
+        d_func decoder;
+        e_func callback;
     };
     //DISCUSS? decode_zero_op -> NULL
 
