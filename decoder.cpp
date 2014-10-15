@@ -7,7 +7,6 @@
 #define RANGES 15
 
 
-std::unordered_map<u_int16_t,instr_t> optable_;
 
 char* mode_temp[64]={
     "R0",   "[R0]", "[R0++]",   "@[R0++]",   "[--R0]",    "@[--R0]",   "[[PC]+R0]", "@[[PC]+R0]",

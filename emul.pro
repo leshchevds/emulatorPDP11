@@ -22,6 +22,9 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h \
     EmulatorPDP11.h \
-    decoder.h
+    decoder.h \
+    tab.inc \
+    decoders.inc \
+    operations.inc
 
 FORMS    += mainwindow.ui
