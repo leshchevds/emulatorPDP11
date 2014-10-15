@@ -21,20 +21,20 @@ char* mode_temp[64]={
 };
 
 
-std::string decode_zero_op(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_zero_op(u_int16_t* pc){
     std::string opcode("ZeroOperandCode");
     return opcode;
 }
-std::string decode_traps(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_traps(u_int16_t* pc){
     std::string opcode("TrapOperandCode");
     return opcode;
 }
-std::string decode_half_op(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_half_op(u_int16_t* pc){
     std::string opcode("HalfOperandCode R");
     std::string reg=std::to_string((*pc)&(07));
     return opcode+reg;
 }
-std::string decode_one_op(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_one_op(u_int16_t* pc){
     std::string opcode("OneOperandCode ");
     std::string operand("R");
     operand = operand + std::to_string((*pc)&(07));
@@ -57,31 +57,31 @@ std::string decode_one_op(u_int16_t* &pc){
     }
     return opcode+operand;
 }
-std::string decode_oNh_op(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_oNh_op(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
-std::string decode_one_pl(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_one_pl(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
-std::string decode_sob(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_sob(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
-std::string decode_xor(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_xor(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
-std::string decode_mark(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_mark(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
-std::string decode_branch(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_branch(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
-std::string decode_two_op(u_int16_t* &pc){
+std::string EmulatorPDP11::decode_two_op(u_int16_t* pc){
     pc++;
     return std::string("1");
 }
@@ -106,7 +106,7 @@ u_int16_t masks_[]= {
     0xff00,     0177700,    0170000,    0177777
 };
 
-std::string EmulatorPDP11::Decode(u_int16_t* &pc){
+std::string EmulatorPDP11::Decode(u_int16_t* pc){
     int i = RANGES/2;
     int left = 0;
     int right = RANGES-1;
