@@ -14,7 +14,7 @@ EmulatorPDP11::EmulatorPDP11() {
     memset(mem_, 0xff, 64*1024);
 
     std::fstream file;
-    file.open("D:\\emulatorPDP11\\screen.bmp", std::fstream::in | std::fstream::binary);
+    file.open("screen.bmp", std::fstream::in | std::fstream::binary);
     file.seekg(62+512/2);
     file.read(mem_ + 48*1024 + 512, 16*1024 - 512);
     file.close();
@@ -39,7 +39,9 @@ EmulatorPDP11::EmulatorPDP11() {
 
 
 }
-
+const char* EmulatorPDP11::videomem() {
+    return mem_ + 32 * 1024; // video mem address
+}
 
 EmulatorPDP11::EmulatorPDP11(const char* source, size_t count) :
                     EmulatorPDP11() {
@@ -82,89 +84,88 @@ void EmulatorPDP11::op_wait(void* a, void* b)
 
 }
 
-/*
-void op_rti(void* a, void*b);
-void op_bpt(void* a, void*b);
-void op_iot(void* a, void*b);
-void op_reset(void* a, void*b);
-void op_rtt(void* a, void*b);
-void op_jmp(void* a, void*b);
-void op_rts(void* a, void*b);
-void op_spl(void* a, void*b);
-void op_nop(void* a, void*b);
-void op_clc(void* a, void*b);
-void op_clv(void* a, void*b);
-void op_clz(void* a, void*b);
-void op_cln(void* a, void*b);
-void op_ccc(void* a, void*b);
-void op_sec(void* a, void*b);
-void op_sev(void* a, void*b);
-void op_sez(void* a, void*b);
-void op_sen(void* a, void*b);
-void op_scc(void* a, void*b);
-void op_swab(void* a, void*b);
-void op_br(void* a, void*b);
-void op_bne(void* a, void*b);
-void op_beq(void* a, void*b);
-void op_bge(void* a, void*b);
-void op_blt(void* a, void*b);
-void op_bgt(void* a, void*b);
-void op_ble(void* a, void*b);
-void op_jsr(void* a, void*b);
-void op_clr(void* a, void*b);
-void op_com(void* a, void*b);
-void op_inc(void* a, void*b);
-void op_dec(void* a, void*b);
-void op_neg(void* a, void*b);
-void op_adc(void* a, void*b);
-void op_sbc(void* a, void*b);
-void op_tst(void* a, void*b);
-void op_ror(void* a, void*b);
-void op_rol(void* a, void*b);
-void op_asr(void* a, void*b);
-void op_asl(void* a, void*b);
-void op_mark(void* a, void*b);
-void op_mfpi(void* a, void*b);
-void op_mtpi(void* a, void*b);
-void op_sxt(void* a, void*b);
-void op_mul(void* a, void*b);
-void op_div(void* a, void*b);
-void op_ash(void* a, void*b);
-void op_ashc(void* a, void*b);
-void op_xor(void* a, void*b);
-void op_sob(void* a, void*b);
-void op_mov(void* a, void*b);
-void op_cmp(void* a, void*b);
-void op_bit(void* a, void*b);
-void op_bic(void* a, void*b);
-void op_bis(void* a, void*b);
-void op_add(void* a, void*b);
-void op_movb(void* a, void*b);
-void op_cmpb(void* a, void*b);
-void op_bitb(void* a, void*b);
-void op_bicb(void* a, void*b);
-void op_bisb(void* a, void*b);
-void op_sub(void* a, void*b);
-void op_bpl(void* a, void*b);
-void op_bmi(void* a, void*b);
-void op_bhi(void* a, void*b);
-void op_blos(void* a, void*b);
-void op_bvc(void* a, void*b);
-void op_bvs(void* a, void*b);
-void op_bcc(void* a, void*b);
-void op_bcs(void* a, void*b);
-void op_emt(void* a, void*b);
-void op_sys(void* a, void*b);
-void op_clrb(void* a, void*b);
-void op_comb(void* a, void*b);
-void op_incb(void* a, void*b);
-void op_decb(void* a, void*b);
-void op_negb(void* a, void*b);
-void op_adcb(void* a, void*b);
-void op_sbcb(void* a, void*b);
-void op_tstb(void* a, void*b);
-void op_rorb(void* a, void*b);
-void op_rolb(void* a, void*b);
-void op_asrb(void* a, void*b);
-void op_aslb(void* a, void*b);
-*/
+
+void EmulatorPDP11::op_rti(void* a, void*b){return;}
+void EmulatorPDP11::op_bpt(void* a, void*b){return;}
+void EmulatorPDP11::op_iot(void* a, void*b){return;}
+void EmulatorPDP11::op_reset(void* a, void*b){return;}
+void EmulatorPDP11::op_rtt(void* a, void*b){return;}
+void EmulatorPDP11::op_jmp(void* a, void*b){return;}
+void EmulatorPDP11::op_rts(void* a, void*b){return;}
+void EmulatorPDP11::op_spl(void* a, void*b){return;}
+void EmulatorPDP11::op_nop(void* a, void*b){return;}
+void EmulatorPDP11::op_clc(void* a, void*b){return;}
+void EmulatorPDP11::op_clv(void* a, void*b){return;}
+void EmulatorPDP11::op_clz(void* a, void*b){return;}
+void EmulatorPDP11::op_cln(void* a, void*b){return;}
+void EmulatorPDP11::op_ccc(void* a, void*b){return;}
+void EmulatorPDP11::op_sec(void* a, void*b){return;}
+void EmulatorPDP11::op_sev(void* a, void*b){return;}
+void EmulatorPDP11::op_sez(void* a, void*b){return;}
+void EmulatorPDP11::op_sen(void* a, void*b){return;}
+void EmulatorPDP11::op_scc(void* a, void*b){return;}
+void EmulatorPDP11::op_swab(void* a, void*b){return;}
+void EmulatorPDP11::op_br(void* a, void*b){return;}
+void EmulatorPDP11::op_bne(void* a, void*b){return;}
+void EmulatorPDP11::op_beq(void* a, void*b){return;}
+void EmulatorPDP11::op_bge(void* a, void*b){return;}
+void EmulatorPDP11::op_blt(void* a, void*b){return;}
+void EmulatorPDP11::op_bgt(void* a, void*b){return;}
+void EmulatorPDP11::op_ble(void* a, void*b){return;}
+void EmulatorPDP11::op_jsr(void* a, void*b){return;}
+void EmulatorPDP11::op_clr(void* a, void*b){return;}
+void EmulatorPDP11::op_com(void* a, void*b){return;}
+void EmulatorPDP11::op_inc(void* a, void*b){return;}
+void EmulatorPDP11::op_dec(void* a, void*b){return;}
+void EmulatorPDP11::op_neg(void* a, void*b){return;}
+void EmulatorPDP11::op_adc(void* a, void*b){return;}
+void EmulatorPDP11::op_sbc(void* a, void*b){return;}
+void EmulatorPDP11::op_tst(void* a, void*b){return;}
+void EmulatorPDP11::op_ror(void* a, void*b){return;}
+void EmulatorPDP11::op_rol(void* a, void*b){return;}
+void EmulatorPDP11::op_asr(void* a, void*b){return;}
+void EmulatorPDP11::op_asl(void* a, void*b){return;}
+void EmulatorPDP11::op_mark(void* a, void*b){return;}
+void EmulatorPDP11::op_mfpi(void* a, void*b){return;}
+void EmulatorPDP11::op_mtpi(void* a, void*b){return;}
+void EmulatorPDP11::op_sxt(void* a, void*b){return;}
+void EmulatorPDP11::op_mul(void* a, void*b){return;}
+void EmulatorPDP11::op_div(void* a, void*b){return;}
+void EmulatorPDP11::op_ash(void* a, void*b){return;}
+void EmulatorPDP11::op_ashc(void* a, void*b){return;}
+void EmulatorPDP11::op_xor(void* a, void*b){return;}
+void EmulatorPDP11::op_sob(void* a, void*b){return;}
+void EmulatorPDP11::op_mov(void* a, void*b){return;}
+void EmulatorPDP11::op_cmp(void* a, void*b){return;}
+void EmulatorPDP11::op_bit(void* a, void*b){return;}
+void EmulatorPDP11::op_bic(void* a, void*b){return;}
+void EmulatorPDP11::op_bis(void* a, void*b){return;}
+void EmulatorPDP11::op_add(void* a, void*b){return;}
+void EmulatorPDP11::op_movb(void* a, void*b){return;}
+void EmulatorPDP11::op_cmpb(void* a, void*b){return;}
+void EmulatorPDP11::op_bitb(void* a, void*b){return;}
+void EmulatorPDP11::op_bicb(void* a, void*b){return;}
+void EmulatorPDP11::op_bisb(void* a, void*b){return;}
+void EmulatorPDP11::op_sub(void* a, void*b){return;}
+void EmulatorPDP11::op_bpl(void* a, void*b){return;}
+void EmulatorPDP11::op_bmi(void* a, void*b){return;}
+void EmulatorPDP11::op_bhi(void* a, void*b){return;}
+void EmulatorPDP11::op_blos(void* a, void*b){return;}
+void EmulatorPDP11::op_bvc(void* a, void*b){return;}
+void EmulatorPDP11::op_bvs(void* a, void*b){return;}
+void EmulatorPDP11::op_bcc(void* a, void*b){return;}
+void EmulatorPDP11::op_bcs(void* a, void*b){return;}
+void EmulatorPDP11::op_emt(void* a, void*b){return;}
+void EmulatorPDP11::op_sys(void* a, void*b){return;}
+void EmulatorPDP11::op_clrb(void* a, void*b){return;}
+void EmulatorPDP11::op_comb(void* a, void*b){return;}
+void EmulatorPDP11::op_incb(void* a, void*b){return;}
+void EmulatorPDP11::op_decb(void* a, void*b){return;}
+void EmulatorPDP11::op_negb(void* a, void*b){return;}
+void EmulatorPDP11::op_adcb(void* a, void*b){return;}
+void EmulatorPDP11::op_sbcb(void* a, void*b){return;}
+void EmulatorPDP11::op_tstb(void* a, void*b){return;}
+void EmulatorPDP11::op_rorb(void* a, void*b){return;}
+void EmulatorPDP11::op_rolb(void* a, void*b){return;}
+void EmulatorPDP11::op_asrb(void* a, void*b){return;}
+void EmulatorPDP11::op_aslb(void* a, void*b){return;}
