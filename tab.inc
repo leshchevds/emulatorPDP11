@@ -1,7 +1,7 @@
 #ifndef TAB_INC
 #define TAB_INC
 #pragma GCC diagnostic ignored "-Wwrite-strings"
-    typedef std::string (EmulatorPDP11::*d_func)(void* ,void*);
+    typedef std::string (EmulatorPDP11::*d_func)(void** ,void**);
     typedef void (EmulatorPDP11::*e_func)(void* ,void*);
 
     struct instr_t {

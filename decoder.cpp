@@ -6,6 +6,7 @@
 #include "operations.h"
 #define RANGES 15
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 
 char* mode_temp[64]={
@@ -18,27 +19,35 @@ char* mode_temp[64]={
     "SP",   "[SP]", "[SP++]",   "@[R6++]",   "[--R6]",    "@[--R6]",   "[[PC]+R6]", "@[[PC]+R6]",
     "PC",   "[PC]", "[R++]",    "@[R++]",   "[--R]",    "@[--R]",       "[PC++]",    "@[PC++]",
 };
-
-
-std::string EmulatorPDP11::decode_zero_op(void* a, void* b){
-    std::string opcode("ZeroOperandCode");
-    return opcode;
+//FIXME handle odd ref on words
+inline u_int16_t deref_PDP11(char* mem, u_int16_t ref){
+    return *(u_int16_t*)(mem+ref);
 }
-std::string EmulatorPDP11::decode_traps(void* a, void* b){
+inline u_int8_t deref_PDP11b(char* mem, u_int16_t ref){
+    return *(u_int8_t*)(mem+ref);
+}
+
+std::string EmulatorPDP11::decode_zero_op(void** a, void** b){
+    return std::string();
+}
+std::string EmulatorPDP11::decode_traps(void** a, void** b){
     std::string opcode("TrapOperandCode");
     return opcode;
 }
-std::string EmulatorPDP11::decode_half_op(void* a, void* b){
-    std::string opcode("HalfOperandCode R");
-    std::string reg=std::to_string(pc_&(07));
-    return opcode+reg;
+std::string EmulatorPDP11::decode_half_op(void** a, void** b){
+    std::string opcode("R");
+    uint16_t *reg = &regs_[pc_&(07)];
+    *a = (void*)reg;
+    return opcode+std::to_string(*reg);
 }
-std::string EmulatorPDP11::decode_one_op(void* a, void* b){
-    std::string opcode("OneOperandCode ");
+std::string EmulatorPDP11::decode_one_op(void** a, void** b){
+    *b = NULL;
     std::string operand("R");
-    operand = operand + std::to_string(pc_&(07));
+    uint16_t *reg = &regs_[pc_&(07)];
+    operand = operand + std::to_string(*reg);
     switch((pc_&(060))>>4){
     case 0:
+        *a = (void*)reg;
         break;
     case 1:
         operand+="++";
@@ -54,37 +63,37 @@ std::string EmulatorPDP11::decode_one_op(void* a, void* b){
     if(pc_&(010)){
         operand="@"+operand;
     }
-    return opcode+operand;
+    return operand;
 }
-std::string EmulatorPDP11::decode_oNh_op(void* a, void* b){
+std::string EmulatorPDP11::decode_oNh_op(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_one_pl(void* a, void* b){
+std::string EmulatorPDP11::decode_one_pl(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_sob(void* a, void* b){
+std::string EmulatorPDP11::decode_sob(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_xor(void* a, void* b){
+std::string EmulatorPDP11::decode_xor(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_mark(void* a, void* b){
+std::string EmulatorPDP11::decode_mark(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_branch(void* a, void* b){
+std::string EmulatorPDP11::decode_branch(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_two_op_no_check(void* a, void* b){
+std::string EmulatorPDP11::decode_two_op_no_check(void** a, void** b){
     pc_++;
     return std::string("1");
 }
-std::string EmulatorPDP11::decode_two_op(void* a, void* b){
+std::string EmulatorPDP11::decode_two_op(void** a, void** b){
     pc_++;
     return std::string("1");
 }
@@ -139,6 +148,12 @@ std::string EmulatorPDP11::step_and_list(){
         break;
     }
     instr_t instr = tab[i];
+    void* arg_a,* arg_b;
+    std::string string_arg = (this->*instr.decoder)(&arg_a, &arg_b);
+
+    //TODO what comes first incrementing pc or calling callback function??
     pc_++;
-    return std::string(instr.instr);
+    (this->*instr.callback)(arg_a,arg_b);
+
+    return std::string(instr.instr) + string_arg;
 }

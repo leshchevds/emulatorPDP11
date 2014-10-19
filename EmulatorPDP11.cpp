@@ -3,6 +3,8 @@
 #include <cstring>
 #include <fstream>
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 
 
 
