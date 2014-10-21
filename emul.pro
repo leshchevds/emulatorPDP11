@@ -25,6 +25,7 @@ HEADERS  += mainwindow.h \
     decoder.h \
     tab.inc \
     decoders.inc \
-    operations.inc
+    operations.inc \
+    modes_selector.inc
 
 FORMS    += mainwindow.ui

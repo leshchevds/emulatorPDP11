@@ -12,5 +12,5 @@ std::string decode_traps(void** a, void** b);
 std::string decode_one_pl(void** a, void** b);
 std::string decode_sob(void** a, void** b);
 std::string decode_xor(void** a, void** b);
-std::string decode_mark(void** a, void** b);
+
 #endif // DECODERS_INC

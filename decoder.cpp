@@ -1,5 +1,7 @@
 
 #include <cstdint>
+#include <string>
+#include <sstream>
 #include <unordered_map>
 #include "EmulatorPDP11.h"
 #include "decoder.h"
@@ -7,95 +9,159 @@
 #define RANGES 15
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-
-
 char* mode_temp[64]={
-    "R0",   "[R0]", "[R0++]",   "@[R0++]",   "[--R0]",    "@[--R0]",   "[[PC]+R0]", "@[[PC]+R0]",
-    "R1",   "[R1]", "[R1++]",   "@[R1++]",   "[--R1]",    "@[--R1]",   "[[PC]+R1]", "@[[PC]+R1]",
-    "R2",   "[R2]", "[R2++]",   "@[R2++]",   "[--R2]",    "@[--R2]",   "[[PC]+R2]", "@[[PC]+R2]",
-    "R3",   "[R3]", "[R3++]",   "@[R3++]",   "[--R3]",    "@[--R3]",   "[[PC]+R3]", "@[[PC]+R3]",
-    "R4",   "[R4]", "[R4++]",   "@[R4++]",   "[--R4]",    "@[--R4]",   "[[PC]+R4]", "@[[PC]+R4]",
-    "R5",   "[R5]", "[R5++]",   "@[R5++]",   "[--R5]",    "@[--R5]",   "[[PC]+R5]", "@[[PC]+R5]",
-    "SP",   "[SP]", "[SP++]",   "@[R6++]",   "[--R6]",    "@[--R6]",   "[[PC]+R6]", "@[[PC]+R6]",
-    "PC",   "[PC]", "[R++]",    "@[R++]",   "[--R]",    "@[--R]",       "[PC++]",    "@[PC++]",
+    "R0",       "R1",       "R2",       "R3",
+    "R4",       "R5",       "SP",       "PC",
+    "[R0]",     "[R1]",     "[R2]",     "[R3]",
+    "[R4]",     "[R5]",     "[SP]",     "[PC]",
+    "[R0++]",   "[R1++]",   "[R2++]",   "[R3++]",
+    "[R4++]",   "[R5++]",   "[SP++]",   "",
+    "@[R0++]",  "@[R1++]",  "@[R2++]",  "@[R3++]",
+    "@[R4++]",  "@[R5++]",  "@[R6++]",  "@",
+    "[--R0]",   "[--R1]",   "[--R2]",   "[--R3]",
+    "[--R4]",   "[--R5]",   "[--R6]",   "[--R]",
+    "@[--R0]",  "@[--R1]",  "@[--R2]",  "@[--R3]",
+    "@[--R4]",  "@[--R5]",  "@[--R6]",  "@[--R]",
+    "R0[0x",    "R1[0x",    "R2[0x",    "R3[0x",
+    "R4[0x",    "R5[0x",    "SP[0x",    "",
+    "@R0[0x",   "@R1[0x",   "@R2[0x",   "@R3[0x",
+    "@R4[0x",   "@R5[0x",   "@SP[0x",   "@"
 };
-//FIXME handle odd ref on words
-inline u_int16_t deref_PDP11(char* mem, u_int16_t ref){
-    return *(u_int16_t*)(mem+ref);
-}
-inline u_int8_t deref_PDP11b(char* mem, u_int16_t ref){
-    return *(u_int8_t*)(mem+ref);
-}
-
 std::string EmulatorPDP11::decode_zero_op(void** a, void** b){
     return std::string();
 }
 std::string EmulatorPDP11::decode_traps(void** a, void** b){
-    std::string opcode("TrapOperandCode");
-    return opcode;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    *(u_int16_t*)b = instr&(0777);
+    std::ostringstream opcode;
+    opcode << " 0" << std::oct << *(u_int16_t*)b;
+    pc_+=2;
+    return opcode.str();
 }
 std::string EmulatorPDP11::decode_half_op(void** a, void** b){
-    std::string opcode("R");
-    uint16_t *reg = &regs_[pc_&(07)];
-    *a = (void*)reg;
-    return opcode+std::to_string(*reg);
+    std::ostringstream opcode;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    opcode <<" "<<mode_temp[instr&(07)];
+    *a = &regs_[instr&(07)];
+    pc_+=2;
+    return opcode.str();
 }
+//TODO handle SP & PC reg modes
 std::string EmulatorPDP11::decode_one_op(void** a, void** b){
     *b = NULL;
-    std::string operand("R");
-    uint16_t *reg = &regs_[pc_&(07)];
-    operand = operand + std::to_string(*reg);
-    switch((pc_&(060))>>4){
-    case 0:
-        *a = (void*)reg;
-        break;
-    case 1:
-        operand+="++";
-        break;
-    case 2:
-        operand = std::string("--")+operand;
-        break;
-    case 3:
-        operand = std::string("[[PC] + ")+operand+"]";
-        break;
+    std::ostringstream opcode;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    pc_ += 2;
+    opcode << " " << mode_temp[instr&(077)];
+    bool is_byte_instr = instr&0100000;
+    u_int16_t *reg = &regs_[instr&(07)];
+    switch((instr&(070))>>3){
+#define ARG a
+#include "modes_selector.inc"
+#undef ARG
     }
-
-    if(pc_&(010)){
-        operand="@"+operand;
-    }
-    return operand;
+    return opcode.str();
 }
 std::string EmulatorPDP11::decode_oNh_op(void** a, void** b){
-    pc_++;
-    return std::string("1");
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    pc_ += 2;
+    std::ostringstream opcode;
+    bool is_byte_instr = instr&0100000;
+    u_int16_t *reg = &regs_[instr&(07)];
+    *a = &regs_[(instr&(0700))>>6];
+    opcode <<" "<<mode_temp[(instr&(0700))>>6]<<" "<<mode_temp[instr&(077)];
+    switch((instr&(070))>>3){
+#define ARG b
+#include "modes_selector.inc"
+#undef ARG
+    }
+    return opcode.str();
 }
 std::string EmulatorPDP11::decode_one_pl(void** a, void** b){
-    pc_++;
-    return std::string("1");
+    *b = NULL;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    *(u_int16_t*)a = instr&(077);
+    std::ostringstream opcode;
+    opcode << " 0" << std::oct << *(u_int16_t*)a;
+    pc_+=2;
+    return opcode.str();
 }
-std::string EmulatorPDP11::decode_sob(void** a, void** b){
-    pc_++;
-    return std::string("1");
+std::string EmulatorPDP11::decode_sob(void** a, void** b){      //2Lesh: b is pointer to u_int16_t. It is nn. You need *b for jump! It's not me, it's spec.
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    *(u_int16_t*)b = instr&(077);
+    std::ostringstream opcode;
+    opcode << " " << mode_temp[(instr&(0700))>>6]
+           << " 0" << std::oct << *(u_int16_t*)b;
+//Achtung!!!
+    pc_+=2;
+    return opcode.str();
 }
 std::string EmulatorPDP11::decode_xor(void** a, void** b){
-    pc_++;
-    return std::string("1");
-}
-std::string EmulatorPDP11::decode_mark(void** a, void** b){
-    pc_++;
-    return std::string("1");
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    pc_ += 2;
+    std::ostringstream opcode;
+    bool is_byte_instr = instr&0100000;
+    u_int16_t *reg = &regs_[instr&(07)];
+    *b = &regs_[(instr&(0700))>>6];
+    opcode <<" "<<mode_temp[instr&(077)];
+    switch((instr&(070))>>3){
+#define ARG a
+#include "modes_selector.inc"
+#undef ARG
+    }
+    opcode<<" "<<mode_temp[(instr&(0700))>>6];
 }
 std::string EmulatorPDP11::decode_branch(void** a, void** b){
-    pc_++;
-    return std::string("1");
+    *b = NULL;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    *(u_int16_t*)a = instr&(0xFF);
+    std::ostringstream opcode;
+    opcode << " 0x" << std::hex << *(u_int16_t*)a;
+    pc_+=2;
+    return opcode.str();
 }
 std::string EmulatorPDP11::decode_two_op_no_check(void** a, void** b){
-    pc_++;
-    return std::string("1");
+    std::ostringstream opcode;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    pc_ += 2;
+    opcode << " " << mode_temp[instr&(077)];
+    bool is_byte_instr = instr&0100000;
+    u_int16_t *reg = &regs_[instr&(07)];
+    switch((instr&(070))>>3){
+#define ARG a
+#include "modes_selector.inc"
+#undef ARG
+    }
+    opcode << " " << mode_temp[(instr&(07700))>>6];
+    reg = &regs_[(instr&(0700))>>6];
+    switch((instr&(07000))>>9){
+#define ARG b
+#include "modes_selector.inc"
+#undef ARG
+    }
+    return opcode.str();
 }
+//legacy. 2Lesh: check ROM at callback
 std::string EmulatorPDP11::decode_two_op(void** a, void** b){
-    pc_++;
-    return std::string("1");
+    std::ostringstream opcode;
+    u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
+    pc_ += 2;
+    opcode << " " << mode_temp[instr&(077)];
+    bool is_byte_instr = instr&0100000;
+    u_int16_t *reg = &regs_[instr&(07)];
+    switch((instr&(070))>>3){
+#define ARG a
+#include "modes_selector.inc"
+#undef ARG
+    }
+    opcode << " " << mode_temp[(instr&(07700))>>6];
+    reg = &regs_[instr&(0700)];
+    switch((instr&(07000))>>9){
+#define ARG b
+#include "modes_selector.inc"
+#undef ARG
+    }
+    return opcode.str();
 }
 
 
@@ -149,10 +215,11 @@ std::string EmulatorPDP11::step_and_list(){
     }
     instr_t instr = tab[i];
     void* arg_a,* arg_b;
+    pc_++;
     std::string string_arg = (this->*instr.decoder)(&arg_a, &arg_b);
 
-    //TODO what comes first incrementing pc or calling callback function??
-    pc_++;
+
+
     (this->*instr.callback)(arg_a,arg_b);
 
     return std::string(instr.instr) + string_arg;
