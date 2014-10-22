@@ -27,10 +27,6 @@ public:
         }
     }
 
-    u_int16_t psw() {
-        return psw_;
-    }
-
     bool isRunning() {
         return running_;
     }
@@ -46,12 +42,21 @@ public:
 private:
 
     char mem_[64*1024];
+
     u_int16_t regs_[8];
-    u_int16_t psw_; // processor status word
-    bool running_; // TODO: delete it!
     u_int16_t& fp_ = regs_[5];
     u_int16_t& sp_ = regs_[6];
     u_int16_t& pc_ = regs_[7];
+
+    //u_int16_t psw_; // processor status word
+    bool running_; // TODO: delete it!
+
+    bool psw_[4];
+    bool& psw_N_ = psw_[0];
+    bool& psw_Z_ = psw_[1];
+    bool& psw_V_ = psw_[2];
+    bool& psw_C_ = psw_[3];
+
 #include "decoders.inc"
 #include "operations.inc"
 #include "tab.inc"

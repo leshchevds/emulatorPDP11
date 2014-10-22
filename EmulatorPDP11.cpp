@@ -5,7 +5,7 @@
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-
+#define ROM_ADDR (mem_ + 48 * 1024)
 
 
 
@@ -56,7 +56,8 @@ EmulatorPDP11::~EmulatorPDP11() {
 
 
 size_t EmulatorPDP11::WriteROM(const char* source, size_t count) {
-    memcpy(mem_ + 48 * 1024, source, count); // ROM start address
+    memcpy(ROM_ADDR, source, count); // ROM start address
+    return count;
 }
 
 void EmulatorPDP11::Run() {
@@ -86,6 +87,8 @@ void EmulatorPDP11::op_wait(void* a, void* b)
 
 }
 
+#define BYTE_MSB(byte) (byte>>7)
+#define WORD_MSB(word) (word>>15)
 
 void EmulatorPDP11::op_rti(void* a, void*b){return;}
 void EmulatorPDP11::op_bpt(void* a, void*b){return;}
@@ -136,19 +139,68 @@ void EmulatorPDP11::op_div(void* a, void*b){return;}
 void EmulatorPDP11::op_ash(void* a, void*b){return;}
 void EmulatorPDP11::op_ashc(void* a, void*b){return;}
 void EmulatorPDP11::op_xor(void* a, void*b){return;}
-void EmulatorPDP11::op_sob(void* a, void*b){return;}
-void EmulatorPDP11::op_mov(void* a, void*b){return;}
+
+void EmulatorPDP11::op_sob(void* reg, void* src)
+{
+    if(--*(u_int16_t*)reg)
+        pc_ -= *(u_int16_t*)src * 2;
+}
+
+void EmulatorPDP11::op_mov(void* src, void* dst)
+{
+    if(dst > ROM_ADDR)
+        throw;
+
+    *(u_int16_t*)dst = *(u_int16_t*)src;
+    psw_N_ = WORD_MSB(*(u_int16_t*)dst);
+    psw_Z_ = *(u_int16_t*)dst;
+    psw_V_ = 0;
+}
+
 void EmulatorPDP11::op_cmp(void* a, void*b){return;}
 void EmulatorPDP11::op_bit(void* a, void*b){return;}
 void EmulatorPDP11::op_bic(void* a, void*b){return;}
 void EmulatorPDP11::op_bis(void* a, void*b){return;}
-void EmulatorPDP11::op_add(void* a, void*b){return;}
-void EmulatorPDP11::op_movb(void* a, void*b){return;}
+
+void EmulatorPDP11::op_add(void* src, void* dst)
+{
+    if(dst > ROM_ADDR)
+        throw;
+
+    psw_V_ = (*(u_int32_t*)dst + *(u_int32_t*)src) != (u_int32_t)(*(u_int16_t*)dst + *(u_int16_t*)src);
+    *(u_int16_t*)dst += *(u_int16_t*)src;
+    psw_N_ = WORD_MSB(*(u_int16_t*)dst);
+    psw_Z_ = *(u_int16_t*)dst;
+}
+
+void EmulatorPDP11::op_movb(void* src, void* dst)
+{
+    if(dst > ROM_ADDR)
+        throw;
+
+    *(u_int8_t*)dst = *(u_int8_t*)src;
+    psw_N_ = BYTE_MSB(*(u_int8_t*)dst);
+    psw_Z_ = *(u_int8_t*)dst;
+    psw_V_ = 0;
+
+}
+
 void EmulatorPDP11::op_cmpb(void* a, void*b){return;}
 void EmulatorPDP11::op_bitb(void* a, void*b){return;}
 void EmulatorPDP11::op_bicb(void* a, void*b){return;}
 void EmulatorPDP11::op_bisb(void* a, void*b){return;}
-void EmulatorPDP11::op_sub(void* a, void*b){return;}
+
+void EmulatorPDP11::op_sub(void* src, void* dst)
+{
+    if(dst > ROM_ADDR)
+        throw;
+
+    *(u_int16_t*)dst -= *(u_int16_t*)src;
+    psw_N_ &= WORD_MSB(*(u_int16_t*)dst);
+    psw_Z_ &= *(u_int16_t*)dst;
+    psw_V_ = 0;
+}
+
 void EmulatorPDP11::op_bpl(void* a, void*b){return;}
 void EmulatorPDP11::op_bmi(void* a, void*b){return;}
 void EmulatorPDP11::op_bhi(void* a, void*b){return;}
