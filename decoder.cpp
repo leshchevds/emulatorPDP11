@@ -27,28 +27,32 @@ char* mode_temp[64]={
     "@R0[0x",   "@R1[0x",   "@R2[0x",   "@R3[0x",
     "@R4[0x",   "@R5[0x",   "@SP[0x",   "@"
 };
-std::string EmulatorPDP11::decode_zero_op(void** a, void** b){
+std::string EmulatorPDP11::decode_zero_op(void** null, void** nill){
+    *null = NULL;
+    *nill = NULL;
     return std::string();
 }
-std::string EmulatorPDP11::decode_traps(void** a, void** b){
+std::string EmulatorPDP11::decode_traps(void** dst, void** null){
+    *null = NULL;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
-    *(u_int16_t*)b = instr&(0777);
+    *(u_int16_t*)dst = instr&(0777);
     std::ostringstream opcode;
-    opcode << " 0" << std::oct << *(u_int16_t*)b;
+    opcode << " 0" << std::oct << *(u_int16_t*)dst;
     pc_+=2;
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_half_op(void** a, void** b){
+std::string EmulatorPDP11::decode_half_op(void** dst, void** null){
+    *null = NULL;
     std::ostringstream opcode;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
     opcode <<" "<<mode_temp[instr&(07)];
-    *a = &regs_[instr&(07)];
+    *dst = &regs_[instr&(07)];
     pc_+=2;
     return opcode.str();
 }
 //TODO handle SP & PC reg modes
-std::string EmulatorPDP11::decode_one_op(void** a, void** b){
-    *b = NULL;
+std::string EmulatorPDP11::decode_one_op(void** dst, void** null){
+    *null = NULL;
     std::ostringstream opcode;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
     pc_ += 2;
@@ -56,71 +60,72 @@ std::string EmulatorPDP11::decode_one_op(void** a, void** b){
     bool is_byte_instr = instr&0100000;
     u_int16_t *reg = &regs_[instr&(07)];
     switch((instr&(070))>>3){
-#define ARG a
+#define ARG dst
 #include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_oNh_op(void** a, void** b){
+std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
     pc_ += 2;
     std::ostringstream opcode;
     bool is_byte_instr = instr&0100000;
     u_int16_t *reg = &regs_[instr&(07)];
-    *a = &regs_[(instr&(0700))>>6];
+    *dst = &regs_[(instr&(0700))>>6];
     opcode <<" "<<mode_temp[(instr&(0700))>>6]<<" "<<mode_temp[instr&(077)];
     switch((instr&(070))>>3){
-#define ARG b
+#define ARG src
 #include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_one_pl(void** a, void** b){
-    *b = NULL;
+std::string EmulatorPDP11::decode_one_pl(void** nn, void** null){
+    *null = NULL;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
-    *(u_int16_t*)a = instr&(077);
+    *(u_int16_t*)nn = instr&(077);
     std::ostringstream opcode;
-    opcode << " 0" << std::oct << *(u_int16_t*)a;
+    opcode << " 0" << std::oct << *(u_int16_t*)nn;
     pc_+=2;
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_sob(void** a, void** b){      //2Lesh: b is pointer to u_int16_t. It is nn. You need *b for jump! It's not me, it's spec.
+std::string EmulatorPDP11::decode_sob(void** reg, void** nn){      //2Lesh: nn is pointer to u_int16_t. It is nn. You need *nn for jump! It's not me, it's spec.
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
-    *(u_int16_t*)b = instr&(077);
+    *(u_int16_t*)nn = instr&(077);
+    *(u_int16_t**)reg = &regs_[(instr&(0700))>>6];
     std::ostringstream opcode;
     opcode << " " << mode_temp[(instr&(0700))>>6]
-           << " 0" << std::oct << *(u_int16_t*)b;
+           << " 0" << std::oct << *(u_int16_t*)nn;
 //Achtung!!!
     pc_+=2;
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_xor(void** a, void** b){
+std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
     pc_ += 2;
     std::ostringstream opcode;
     bool is_byte_instr = instr&0100000;
     u_int16_t *reg = &regs_[instr&(07)];
-    *b = &regs_[(instr&(0700))>>6];
+    *src = &regs_[(instr&(0700))>>6];
     opcode <<" "<<mode_temp[instr&(077)];
     switch((instr&(070))>>3){
-#define ARG a
+#define ARG dst
 #include "modes_selector.inc"
 #undef ARG
     }
     opcode<<" "<<mode_temp[(instr&(0700))>>6];
 }
-std::string EmulatorPDP11::decode_branch(void** a, void** b){
-    *b = NULL;
+std::string EmulatorPDP11::decode_branch(void** dst, void** null){
+    *null = NULL;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
-    *(u_int16_t*)a = instr&(0xFF);
+    *(u_int16_t*)dst = instr&(0xFF);
     std::ostringstream opcode;
-    opcode << " 0x" << std::hex << *(u_int16_t*)a;
+    opcode << " 0x" << std::hex << *(u_int16_t*)dst;
     pc_+=2;
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_two_op_no_check(void** a, void** b){
+std::string EmulatorPDP11::decode_two_op_no_check(void** src, void** dst){
     std::ostringstream opcode;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
     pc_ += 2;
@@ -128,21 +133,21 @@ std::string EmulatorPDP11::decode_two_op_no_check(void** a, void** b){
     bool is_byte_instr = instr&0100000;
     u_int16_t *reg = &regs_[instr&(07)];
     switch((instr&(070))>>3){
-#define ARG a
+#define ARG dst
 #include "modes_selector.inc"
 #undef ARG
     }
     opcode << " " << mode_temp[(instr&(07700))>>6];
     reg = &regs_[(instr&(0700))>>6];
     switch((instr&(07000))>>9){
-#define ARG b
+#define ARG src
 #include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
 }
 //legacy. 2Lesh: check ROM at callback
-std::string EmulatorPDP11::decode_two_op(void** a, void** b){
+std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     std::ostringstream opcode;
     u_int16_t instr = *(u_int16_t*)(mem_ + pc_);
     pc_ += 2;
@@ -150,14 +155,14 @@ std::string EmulatorPDP11::decode_two_op(void** a, void** b){
     bool is_byte_instr = instr&0100000;
     u_int16_t *reg = &regs_[instr&(07)];
     switch((instr&(070))>>3){
-#define ARG a
+#define ARG dst
 #include "modes_selector.inc"
 #undef ARG
     }
     opcode << " " << mode_temp[(instr&(07700))>>6];
     reg = &regs_[instr&(0700)];
     switch((instr&(07000))>>9){
-#define ARG b
+#define ARG src
 #include "modes_selector.inc"
 #undef ARG
     }
