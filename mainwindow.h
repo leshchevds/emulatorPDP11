@@ -5,6 +5,7 @@
 
 #include <QMainWindow>
 #include <QFuture>
+#include <QStringListModel>
 
 namespace Ui {
 class MainWindow;
@@ -24,11 +25,18 @@ private slots:
 
     void on_pushButton_2_clicked();
 
+    void on_pushButton_4_clicked();
+
+    void on_pushButton_3_clicked();
+
 private:
     Ui::MainWindow *ui;
     EmulatorPDP11 *emul_ = 0;
     QFuture<void> future_;
     bool isWorking_ = 1;
+
+    QStringListModel *OpListModel_;
+    void PushOperation(QString str);
 
     void UpdateFrames();
 

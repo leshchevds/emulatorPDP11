@@ -5,7 +5,7 @@
     typedef void (EmulatorPDP11::*e_func)(void* ,void*);
 
     struct instr_t {
-        u_int16_t opcode;
+        uint16_t opcode;
         char* instr;
         d_func decoder;
         e_func callback;

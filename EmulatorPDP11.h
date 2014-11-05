@@ -16,10 +16,10 @@ public:
     explicit EmulatorPDP11(const char* source, size_t count = 16*1024) ;
     ~EmulatorPDP11();
 
-    const char* videomem();
+    char* videomem();
     size_t WriteROM(const char* source, size_t count = 16*1024);
 
-    u_int16_t reg(u_int8_t num) {
+    uint16_t reg(uint8_t num) {
         if (num < 8) {
             return regs_[num];
         } else {
@@ -37,16 +37,16 @@ public:
     void Reset();
 
 
-    std::string Decode(u_int16_t* pc); // could require up to 3 words allocated NOT CONST!!! DECODER CHANGING PC!!!
+    std::string Decode(uint16_t* pc); // could require up to 3 words allocated NOT CONST!!! DECODER CHANGING PC!!!
 
 private:
 
     char mem_[64*1024];
 
-    u_int16_t regs_[8];
-    u_int16_t& fp_ = regs_[5];
-    u_int16_t& sp_ = regs_[6];
-    u_int16_t& pc_ = regs_[7];
+    uint16_t regs_[8];
+    uint16_t& fp_ = regs_[5];
+    uint16_t& sp_ = regs_[6];
+    uint16_t& pc_ = regs_[7];
 
     //u_int16_t psw_; // processor status word
     bool running_; // TODO: delete it!
