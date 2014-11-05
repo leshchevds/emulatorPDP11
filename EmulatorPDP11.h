@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string>
 #include <functional>
+#include <atomic>
+#include <QStringListModel>
 
 class EmulatorPDP11;
 
@@ -27,8 +29,14 @@ public:
         }
     }
 
+    bool NFlag() {return psw_N_;}
+    bool ZFlag() {return psw_Z_;}
+    bool VFlag() {return psw_V_;}
+    bool CFlag() {return psw_C_;}
+
+
     bool isRunning() {
-        return running_;
+        return run_lock_;
     }
 
     void Run();
@@ -36,9 +44,9 @@ public:
     void Step();
     void Reset();
 
-
     std::string Decode(uint16_t* pc); // could require up to 3 words allocated NOT CONST!!! DECODER CHANGING PC!!!
 
+    QStringListModel *OpListModel_;
 private:
 
     char mem_[64*1024];
@@ -48,19 +56,22 @@ private:
     uint16_t& sp_ = regs_[6];
     uint16_t& pc_ = regs_[7];
 
-    //u_int16_t psw_; // processor status word
-    bool running_; // TODO: delete it!
-
     bool psw_[4];
     bool& psw_N_ = psw_[0];
     bool& psw_Z_ = psw_[1];
     bool& psw_V_ = psw_[2];
     bool& psw_C_ = psw_[3];
 
+    bool runApproved_;
+
 #include "decoders.inc"
 #include "operations.inc"
 #include "tab.inc"
-    std::string step_and_list();
+    void step_and_list(bool single = true);
+    void RunWorker();
+
+    std::atomic_bool run_lock_;
+    void PushOperation(QString str);
 };
 
 #endif // EMULATORPDP11_H

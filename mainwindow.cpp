@@ -17,8 +17,8 @@ MainWindow::MainWindow(QWidget *parent) :
         future_ =  QtConcurrent::run(this, &MainWindow::UpdateFrames);
     }
 
-    OpListModel_ = new QStringListModel(this);
-    ui->listView->setModel(OpListModel_);
+
+    ui->OpsListView->setModel(emul_->OpListModel_);
 }
 
 MainWindow::~MainWindow() {
@@ -51,41 +51,41 @@ void MainWindow::UpdateFrames() {
         }
         for (int i = 0; i < 256; ++i) {
             for (int j = 0; j < 512; ++j) {
-                image.setPixel(j, 255 - i, (bool)(frame[(i*512 + j) / 8] & (1 << (j % 8))));
+                image.setPixel(j, 255 - i,
+                               !(bool)(frame[(i*512 + j) / 8] & (1 << (7 - j % 8))));
             }
         }
-        ui->label->setPixmap(QPixmap::fromImage(image));
-        Thread::msleep(1000);
+        ui->ScreenLabel->setPixmap(QPixmap::fromImage(image));
 
+        ui->R0_LCD->display(emul_->reg(0));
+        ui->R1_LCD->display(emul_->reg(1));
+        ui->R2_LCD->display(emul_->reg(2));
+        ui->R3_LCD->display(emul_->reg(3));
+        ui->R4_LCD->display(emul_->reg(4));
+        ui->R5_LCD->display(emul_->reg(5));
+        ui->R6_LCD->display(emul_->reg(6));
+        ui->R7_LCD->display(emul_->reg(7));
+        ui->NFlagLCD->display(emul_->NFlag());
+        ui->ZFlagLCD->display(emul_->ZFlag());
+        ui->VFlagLCD->display(emul_->VFlag());
+        ui->CFlagLCD->display(emul_->CFlag());
+
+        Thread::msleep(100);
     }
 }
 
-
-void MainWindow::PushOperation(QString str) {
-    OpListModel_->insertRow(0);
-    QModelIndex index = OpListModel_->index(0);
-    const int MAX_ROWS = 10;
-    if (OpListModel_->rowCount() == MAX_ROWS) {
-        OpListModel_->removeRow(MAX_ROWS - 1);
-    }
-    OpListModel_->setData(index, str);
+void MainWindow::on_ResetButton_clicked() {
+    emul_->Reset();
 }
 
-void MainWindow::on_pushButton_clicked() {
-    ui->label->setText("ohoho");
-    QPixmap mypix(512,256);
-    mypix.fill(Qt::blue);
-    ui->label->setPixmap(mypix);
+void MainWindow::on_StepButton_clicked() {
+    emul_->Step();
 }
 
-void MainWindow::on_pushButton_2_clicked() {
-    PushOperation("aaah");
+void MainWindow::on_GoButton_clicked() {
+    emul_->Run();
 }
 
-void MainWindow::on_pushButton_3_clicked() {
-
-}
-
-void MainWindow::on_pushButton_4_clicked() {
-    PushOperation("ooh");
+void MainWindow::on_StopButton_clicked() {
+    emul_->Stop();
 }

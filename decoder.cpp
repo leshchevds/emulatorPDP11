@@ -184,34 +184,34 @@ uint16_t masks_[]= {
     0xff00,     0177700,    0170000,    0177777
 };
 
-std::string EmulatorPDP11::step_and_list(){
+void EmulatorPDP11::step_and_list(bool single){
     int i = RANGES/2;
     int left = 0;
-    int right = RANGES-1;
+    int right = RANGES - 1;
     while (true){
-        if(ranges_[i]>pc_){
+        if (ranges_[i] > *(mem_ + pc_)) {
             right = i;
             i = (right+left)/2;
             continue;
         }
-        if(ranges_[i+1]<=pc_){
+        if (ranges_[i+1] <= *(mem_ + pc_)) {
             left = i;
             i = (right+left)/2;
             continue;
         }
         break;
     }
-    uint16_t masked_pc = pc_&(masks_[i]);
+    uint16_t masked_pc = *(mem_ + pc_)&(masks_[i]);
     i = 46;
     left = 0;
     right = 86;
     while (true){
-        if(tab[i].opcode>masked_pc){
+        if (tab[i].opcode>masked_pc) {
             right = i;
             i = (right+left)/2;
             continue;
         }
-        if(tab[i+1].opcode<=masked_pc){
+        if (tab[i+1].opcode<=masked_pc) {
             left = i;
             i = (right+left)/2;
             continue;
@@ -220,12 +220,13 @@ std::string EmulatorPDP11::step_and_list(){
     }
     instr_t instr = tab[i];
     void* arg_a,* arg_b;
-    pc_++;
+
     std::string string_arg = (this->*instr.decoder)(&arg_a, &arg_b);
-
-
 
     (this->*instr.callback)(arg_a,arg_b);
 
-    return std::string(instr.instr) + string_arg;
+    if (single) {
+        PushOperation((std::string(instr.instr) + string_arg).c_str());
+        run_lock_.store(false);
+    }
 }

@@ -5,7 +5,7 @@
 
 #include <QMainWindow>
 #include <QFuture>
-#include <QStringListModel>
+
 
 namespace Ui {
 class MainWindow;
@@ -21,13 +21,13 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_pushButton_clicked();
+    void on_StepButton_clicked();
 
-    void on_pushButton_2_clicked();
+    void on_ResetButton_clicked();
 
-    void on_pushButton_4_clicked();
+    void on_GoButton_clicked();
 
-    void on_pushButton_3_clicked();
+    void on_StopButton_clicked();
 
 private:
     Ui::MainWindow *ui;
@@ -35,11 +35,7 @@ private:
     QFuture<void> future_;
     bool isWorking_ = 1;
 
-    QStringListModel *OpListModel_;
-    void PushOperation(QString str);
-
     void UpdateFrames();
-
 };
 
 #endif // MAINWINDOW_H

@@ -2,45 +2,20 @@
 
 #include <cstring>
 #include <fstream>
+#include <QtConcurrentRun>
+#include <QThread>
+#include <QMetaType> // without this line methods from threads emit errors
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 #define ROM_ADDR (mem_ + 48 * 1024)
 
 
-
 EmulatorPDP11::EmulatorPDP11() {
-
-    char* video = videomem();
-
+    run_lock_ = false;
+    qRegisterMetaType<QVector<int> >("QVector<int>");
+    OpListModel_ = new QStringListModel();
     Reset();
-
-// filling in ROM
-    // picture
-    std::fstream file;
-    file.open("screen.bmp", std::fstream::in | std::fstream::binary);
-    file.seekg(62 + 256); // 256 - margin from both sides
-    file.read(mem_ + 48*1024 + 512, 16*1024 - 512);
-    file.close();
-    //TODO: op codes are to be written here
-
-    for (int i = 4; i < 256 - 4; ++i) {
-        for (int j = 0; j < 512; ++j) {
-            video[i*64 + j/8] &= (255-(1<<(j%8)));
-            video[i*64 + j/8] |= (1<<(j%8))* !(bool)(mem_[48*1024 + 256 + i*64 + j/8] & (1<<(8-j%8)));
-        }
-    }
-
-    for (int i = 0; i < 4*(512/8); ++i) {
-        video[i] = 0;
-    }
-    for (int i = 1024*16 - 4*(512/8); i < 1024*16; ++i) {
-        video[i] = 0;
-    }
-    for (int i = 4; i < 252; ++i) {
-        video[i*(512/8) + 0] &= 16*15;
-        video[i*(512/8) + 63] &= 15;
-    }
 }
 
 char* EmulatorPDP11::videomem() {
@@ -52,10 +27,13 @@ EmulatorPDP11::EmulatorPDP11(const char* source, size_t count) :
     memcpy(mem_, source, count);
 }
 
-
 EmulatorPDP11::~EmulatorPDP11() {
+    runApproved_ = false;
+    bool expected = false;
+    while (!run_lock_.compare_exchange_strong(expected, true)) {
+        expected = false;
+    }
 }
-
 
 size_t EmulatorPDP11::WriteROM(const char* source, size_t count) {
     memcpy(ROM_ADDR, source, count); // ROM start address
@@ -63,31 +41,111 @@ size_t EmulatorPDP11::WriteROM(const char* source, size_t count) {
 }
 
 void EmulatorPDP11::Run() {
-
+    bool expected = false;
+    if (run_lock_.compare_exchange_strong(expected, true)) {
+        runApproved_ = true;
+        QtConcurrent::run(this, &EmulatorPDP11::RunWorker);
+    }
 }
 
 void EmulatorPDP11::Stop() {
-
+    runApproved_ = false;
 }
+
 
 void EmulatorPDP11::Step() {
-
+    bool expected = false;
+    if (run_lock_.compare_exchange_strong(expected, true)) {
+        QtConcurrent::run(this, &EmulatorPDP11::step_and_list, true);
+    }
 }
 
-void EmulatorPDP11::Reset() { // TODO: what is reset?
+void EmulatorPDP11::Reset() {
+    runApproved_ = false;
+    bool expected = false;
+    while (!run_lock_.compare_exchange_strong(expected, true)) {
+        expected = false;
+    }
+
     memset(mem_, 0xff, 48*1024);
 
     pc_ = 48 * 1024; // ROM start address
-    regs_[0] = regs_[1] = regs_[2] = regs_[3] = 0;
+    regs_[0] = regs_[1] = regs_[2] = regs_[3] = regs_[4] = regs_[5] = 0;
+
+    OpListModel_->removeRows(0, OpListModel_->rowCount());
+// filling in ROM
+    // picture
+    std::fstream file;
+    file.open("screen.bmp", std::fstream::in | std::fstream::binary);
+    file.seekg(62 + 256); // 256 - margin from both sides
+    file.read(mem_ + 48*1024 + 512, 16*1024 - 512);
+    file.close();
+
+    //TODO: op codes are to be written here
+
+    int R0, R1, R2, R3;
+    R0 = 4*64;
+first:
+    R1 = 0;
+second:
+    R2 = 32*1024 + R0 + R1;
+    R3 = 48*1024 + 256 + R0 + R1;
+    mem_[R2] = mem_[R3];
+    R1 += 1;
+    if (R1 < 64) goto second;
+    R0 += 64;
+    if (R0 < 252*64) goto first;
+
+    R0 = 32*1024;
+third:
+    mem_[R0] = 0xff;
+    R0 += 1;
+    if (R0 < 32*1024 + (4*512/8)) goto third;
+
+    R0 = 48*1024 - 4*(512/8);
+fourth:
+    mem_[R0] = 0xff;
+    R0 += 1;
+    if (R0 < 48*1024) goto fourth;
+
+    R0 = 32*1024 + 4*(512/8);
+fifth:
+    mem_[R0] |= 0xf0;
+    R1 = R0 + 63;
+    mem_[R1] |= 0x0f;
+    R0 += 512/8;
+    if (R0 < 32*1024 + 252*(512/8)) goto fifth;
+
+
+    ((uint16_t*)mem_)[0] = 0000001;
+    ((uint16_t*)mem_)[1] = 052000000;
+
+    run_lock_.store(false);
 }
 
-void EmulatorPDP11::op_halt(void* a, void* b)
-{
+void EmulatorPDP11::RunWorker() {
+    while (runApproved_) {
+        EmulatorPDP11::step_and_list(false);
+    }
+    run_lock_.store(false);
+    regs_[3] = 1235; // DEBUG
+}
+
+void EmulatorPDP11::PushOperation(QString str) {
+    OpListModel_->insertRow(0);
+    QModelIndex index = OpListModel_->index(0);
+    const int MAX_ROWS = 10;
+    if (OpListModel_->rowCount() == MAX_ROWS) {
+        OpListModel_->removeRow(MAX_ROWS - 1);
+    }
+    OpListModel_->setData(index, str);
+}
+
+void EmulatorPDP11::op_halt(void* a, void* b) {
 
 }
 
-void EmulatorPDP11::op_wait(void* a, void* b)
-{
+void EmulatorPDP11::op_wait(void* a, void* b) {
 
 }
 
@@ -125,8 +183,7 @@ void EmulatorPDP11::op_jsr(void* a, void*b){return;}
 void EmulatorPDP11::op_clr(void* a, void*b){return;}
 void EmulatorPDP11::op_com(void* a, void*b){return;}
 
-void EmulatorPDP11::op_inc(void* addr, void* unused)
-{
+void EmulatorPDP11::op_inc(void* addr, void* unused) {
     if (addr > ROM_ADDR)
         throw;
 
@@ -136,8 +193,7 @@ void EmulatorPDP11::op_inc(void* addr, void* unused)
     (*(uint16_t*)addr)++;
 }
 
-void EmulatorPDP11::op_dec(void* addr, void* unused)
-{
+void EmulatorPDP11::op_dec(void* addr, void* unused) {
     if (addr > ROM_ADDR)
         throw;
 
@@ -165,14 +221,12 @@ void EmulatorPDP11::op_ash(void* a, void*b){return;}
 void EmulatorPDP11::op_ashc(void* a, void*b){return;}
 void EmulatorPDP11::op_xor(void* a, void*b){return;}
 
-void EmulatorPDP11::op_sob(void* reg, void* n)
-{
+void EmulatorPDP11::op_sob(void* reg, void* n) {
     if (--(*(uint16_t*)reg))
         pc_ -= *((uint8_t*)(&n)) * 2;
 }
 
-void EmulatorPDP11::op_mov(void* src, void* dst)
-{
+void EmulatorPDP11::op_mov(void* src, void* dst) {
     if (dst > ROM_ADDR)
         throw;
 
@@ -187,8 +241,7 @@ void EmulatorPDP11::op_bit(void* a, void*b){return;}
 void EmulatorPDP11::op_bic(void* a, void*b){return;}
 void EmulatorPDP11::op_bis(void* a, void*b){return;}
 
-void EmulatorPDP11::op_add(void* src, void* dst)
-{
+void EmulatorPDP11::op_add(void* src, void* dst) {
     if (dst > ROM_ADDR)
         throw;
 
@@ -199,8 +252,7 @@ void EmulatorPDP11::op_add(void* src, void* dst)
     psw_Z_ = *(uint16_t*)dst;
 }
 
-void EmulatorPDP11::op_movb(void* src, void* dst)
-{
+void EmulatorPDP11::op_movb(void* src, void* dst) {
     if (dst > ROM_ADDR)
         throw;
 
@@ -216,8 +268,7 @@ void EmulatorPDP11::op_bitb(void* a, void*b){return;}
 void EmulatorPDP11::op_bicb(void* a, void*b){return;}
 void EmulatorPDP11::op_bisb(void* a, void*b){return;}
 
-void EmulatorPDP11::op_sub(void* src, void* dst)
-{
+void EmulatorPDP11::op_sub(void* src, void* dst) {
     if (dst > ROM_ADDR)
         throw;
 
@@ -241,8 +292,7 @@ void EmulatorPDP11::op_sys(void* a, void*b){return;}
 void EmulatorPDP11::op_clrb(void* a, void*b){return;}
 void EmulatorPDP11::op_comb(void* a, void*b){return;}
 
-void EmulatorPDP11::op_incb(void* addr, void* unused)
-{
+void EmulatorPDP11::op_incb(void* addr, void* unused) {
     if (addr > ROM_ADDR)
         throw;
 
@@ -251,8 +301,8 @@ void EmulatorPDP11::op_incb(void* addr, void* unused)
     psw_N_ = BYTE_MSB(*(uint8_t*)addr);
     psw_Z_ = *(uint8_t*)addr;
 }
-void EmulatorPDP11::op_decb(void* addr, void* unused)
-{
+
+void EmulatorPDP11::op_decb(void* addr, void* unused) {
     if (addr > ROM_ADDR)
         throw;
 
