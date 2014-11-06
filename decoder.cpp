@@ -188,30 +188,32 @@ void EmulatorPDP11::step_and_list(bool single){
     int i = RANGES/2;
     int left = 0;
     int right = RANGES - 1;
+    uint16_t opcode = *(uint16_t*)(mem_+pc_);
+    if (opcode == 0177777) { pc_+=2; return; } //nononono David Blain.
     while (true){
-        if (ranges_[i] > *(mem_ + pc_)) {
+        if (ranges_[i] > opcode) {
             right = i;
             i = (right+left)/2;
             continue;
         }
-        if (ranges_[i+1] <= *(mem_ + pc_)) {
+        if (ranges_[i+1] <= opcode) {
             left = i;
             i = (right+left)/2;
             continue;
         }
         break;
     }
-    uint16_t masked_pc = *(mem_ + pc_)&(masks_[i]);
+    uint16_t masked_opcode = opcode&(masks_[i]);
     i = 46;
     left = 0;
     right = 86;
     while (true){
-        if (tab[i].opcode>masked_pc) {
+        if (tab[i].opcode>masked_opcode) {
             right = i;
             i = (right+left)/2;
             continue;
         }
-        if (tab[i+1].opcode<=masked_pc) {
+        if (tab[i+1].opcode<=masked_opcode) {
             left = i;
             i = (right+left)/2;
             continue;
