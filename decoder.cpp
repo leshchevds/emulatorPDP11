@@ -62,39 +62,7 @@ std::string EmulatorPDP11::decode_one_op(void** dst, void** null){
     uint16_t *reg = &regs_[instr&(07)];
     switch((instr&(070))>>3){
 #define ARG dst
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
@@ -108,39 +76,8 @@ std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     *dst = &regs_[(instr&(0700))>>6];
     opcode <<" "<<mode_temp[(instr&(0700))>>6]<<" "<<mode_temp[instr&(077)];
     switch((instr&(070))>>3){
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#define ARG src
+#include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
@@ -175,39 +112,7 @@ std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     opcode <<" "<<mode_temp[instr&(077)];
     switch((instr&(070))>>3){
 #define ARG dst
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#include "modes_selector.inc"
 #undef ARG
     }
     opcode<<" "<<mode_temp[(instr&(0700))>>6];
@@ -232,78 +137,14 @@ std::string EmulatorPDP11::decode_two_op_no_check(void** src, void** dst){
     uint16_t *reg = &regs_[instr&(07)];
     switch((instr&(070))>>3){
 #define ARG dst
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#include "modes_selector.inc"
 #undef ARG
     }
     opcode << " " << mode_temp[(instr&(07700))>>6];
     reg = &regs_[(instr&(0700))>>6];
     switch((instr&(07000))>>9){
 #define ARG src
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
@@ -318,78 +159,14 @@ std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     uint16_t *reg = &regs_[instr&(07)];
     switch((instr&(070))>>3){
 #define ARG dst
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#include "modes_selector.inc"
 #undef ARG
     }
     opcode << " " << mode_temp[(instr&(07700))>>6];
     reg = &regs_[instr&(0700)];
     switch((instr&(07000))>>9){
 #define ARG src
-    case 0:
-        *ARG = (void*)reg;
-        break;
-    case 1:
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 2:
-        *ARG = (void*)(mem_+*reg);
-        *reg+=is_byte_instr?1:2;
-        break;
-    case 3:
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        *reg+=2;
-        break;
-    case 4:
-        *reg-=is_byte_instr?1:2;
-        *ARG = (void*)(mem_+*reg);
-        break;
-    case 5:
-        *reg-=2;
-        *ARG = (*(uint16_t*)(mem_+*reg))+mem_;
-        break;
-    case 6:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        pc_+=2;
-        break;
-    case 7:
-        *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-        opcode << std::hex << *(uint16_t*)ARG;
-        *ARG = (*(uint16_t*)(*ARG))+mem_;
-        pc_+=2;
-        break;
+#include "modes_selector.inc"
 #undef ARG
     }
     return opcode.str();
