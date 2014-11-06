@@ -30,6 +30,7 @@ char* mode_temp[64]={
 std::string EmulatorPDP11::decode_zero_op(void** null, void** nill){
     *null = NULL;
     *nill = NULL;
+    pc_+=2;
     return std::string();
 }
 std::string EmulatorPDP11::decode_traps(void** dst, void** null){
@@ -115,6 +116,8 @@ std::string EmulatorPDP11::decode_xor(void** dst, void** src){
 #undef ARG
     }
     opcode<<" "<<mode_temp[(instr&(0700))>>6];
+    pc_+=2;
+    return opcode.str();
 }
 std::string EmulatorPDP11::decode_branch(void** dst, void** null){
     *null = NULL;
