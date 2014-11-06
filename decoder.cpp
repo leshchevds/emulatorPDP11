@@ -8,8 +8,6 @@
 #include "operations.h"
 #define RANGES 15
 
-#include <sstream> // debug
-
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 char* mode_temp[64]={
     "R0",       "R1",       "R2",       "R3",
@@ -63,10 +61,18 @@ std::string EmulatorPDP11::decode_one_op(void** dst, void** null){
     bool is_byte_instr = instr&0100000;
     uint16_t *reg = &regs_[instr&(07)];
 
-    switch((instr&(070))>>3){
-#define ARG dst
-#include "modes_selector.inc"
-#undef ARG
+    if((instr&(07)) != 07){
+        switch((instr&(070))>>3){
+            #define ARG dst
+            #include "modes_selector.inc"
+        }
+    }else{
+        switch((instr&(070))>>3){
+            #define PC
+            #include "modes_selector.inc"
+            #undef ARG
+            #undef PC
+        }
     }
     return opcode.str();
 }
@@ -79,10 +85,19 @@ std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     *dst = &regs_[(instr&(0700))>>6];
     opcode <<" "<<mode_temp[(instr&(0700))>>6]<<" "<<mode_temp[instr&(077)];
 
-    switch((instr&(070))>>3){
-#define ARG src
-#include "modes_selector.inc"
-#undef ARG
+    if((instr&(07)) != 07){
+        switch((instr&(070))>>3){
+            #define ARG src
+            #include "modes_selector.inc"
+
+        }
+    }else{
+        switch((instr&(070))>>3){
+            #define PC
+            #include "modes_selector.inc"
+            #undef ARG
+            #undef PC
+        }
     }
     return opcode.str();
 }
@@ -114,11 +129,18 @@ std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     uint16_t *reg = &regs_[instr&(07)];
     *src = &regs_[(instr&(0700))>>6];
     opcode <<" "<<mode_temp[instr&(077)];
-
-    switch((instr&(070))>>3){
-#define ARG dst
-#include "modes_selector.inc"
-#undef ARG
+    if((instr&07) != 7){
+        switch((instr&(070))>>3){
+            #define ARG dst
+            #include "modes_selector.inc"
+        }
+    }else{
+        switch((instr&(070))>>3){
+            #define PC
+            #include "modes_selector.inc"
+            #undef ARG
+            #undef PC
+        }
     }
     opcode<<" "<<mode_temp[(instr&(0700))>>6];
     pc_+=2;
@@ -133,29 +155,6 @@ std::string EmulatorPDP11::decode_branch(void** dst, void** null){
     pc_+=2;
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_two_op_no_check(void** src, void** dst){
-    std::ostringstream opcode;
-    uint16_t instr = *(uint16_t*)(mem_ + pc_);
-    pc_ += 2;
-    opcode << " " << mode_temp[instr&(077)];
-    bool is_byte_instr = instr&0100000;
-    uint16_t *reg = &regs_[instr&(07)];
-
-    switch((instr&(070))>>3){
-#define ARG dst
-#include "modes_selector.inc"
-#undef ARG
-    }
-    opcode << " " << mode_temp[(instr&(07700))>>6];
-    reg = &regs_[(instr&(0700))>>6];
-    switch((instr&(07000))>>9){
-#define ARG src
-#include "modes_selector.inc"
-#undef ARG
-    }
-    return opcode.str();
-}
-//legacy. 2Lesh: check ROM at callback
 std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     std::ostringstream opcode;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -163,19 +162,33 @@ std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     opcode << " " << mode_temp[instr&(077)];
     bool is_byte_instr = instr&0100000;
     uint16_t *reg = &regs_[instr&(07)];
-
-    switch((instr&(070))>>3){
-#define ARG dst
-#include "modes_selector.inc"
-#undef ARG
+    if((instr&(07)) != 07){
+        switch((instr&(070))>>3){
+            #define ARG dst
+            #include "modes_selector.inc"
+        }
+    }else{
+        switch((instr&(070))>>3){
+            #define PC
+            #include "modes_selector.inc"
+            #undef ARG
+            #undef PC
+        }
     }
     opcode << " " << mode_temp[(instr&(07700))>>6];
     reg = &regs_[(instr&(0700)) >> 6];
-
-    switch((instr&(07000))>>9){
-#define ARG src
-#include "modes_selector.inc"
-#undef ARG
+    if((instr&(0700)) != 0700){
+            switch((instr&(07000))>>9){
+                #define ARG src
+                #include "modes_selector.inc"
+            }
+    }else{
+            switch((instr&(07000))>>9){
+                #define PC
+                #include "modes_selector.inc"
+                #undef ARG
+                #undef PC
+            }
     }
     return opcode.str();
 }
