@@ -6,6 +6,8 @@
 #include <QThread>
 #include <QMetaType> // without this line methods from threads emit errors
 
+#include <sstream> // for debug output
+
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 #define ROM_ADDR (mem_ + 48 * 1024)
@@ -116,16 +118,66 @@ fifth:
     R0 += 512/8;
     if (R0 < 32*1024 + 252*(512/8)) goto fifth;
 
+    uint16_t* rom = (uint16_t*)(mem_+48*1024);
 
-    *(uint16_t*)(mem_+48*1024) = 0010071;
-    *(uint16_t*)(mem_+2+48*1024) = 0070002;
-*(uint16_t*)(mem_+4+48*1024) = 0077000;
-*(uint16_t*)(mem_+6+48*1024) = 0005072;
-*(uint16_t*)(mem_+8+48*1024) = 0140006;
-                        //052000000 is 24 bit number
-                                                    //you should not adress memory in such way
-                                                    //if you thought that decoder will guess where is opcode - it won't
-                                                    //it expects next opcode at mem_+pc_
+    const uint16_t MOV = 0010000,
+            ADD = 0060000,
+            SUB = 0160000,
+            CMP = 0020000,
+            BNE = 0x10,
+
+            DST_R0_REG =   0000000,
+            DST_R1_REG =   0000001,
+            DST_R2_REG =   0000002,
+            DST_R3_REG =   0000003,
+            DST_R7_IMMED = 0000027,
+
+            SRC_R0_REG =   0000000,
+            SRC_R1_REG =   0000100,
+            SRC_R2_REG =   0000200,
+            SRC_R7_IMMED = 0002700
+            ;
+
+
+    rom[2] = MOV + DST_R1_REG + SRC_R7_IMMED;
+    rom[3] = 0;
+
+//    R0 = 4*64;
+    rom[0] = MOV + DST_R0_REG + SRC_R7_IMMED;
+    rom[1] = 4*64;
+//first: R1 = 0;
+    rom[2] = MOV + DST_R1_REG + SRC_R7_IMMED;
+    rom[3] = 0;
+//second: R2 = 32*1024;
+//        R2 += R0;
+//        R2 += R1;
+    rom[4] = MOV + DST_R2_REG + SRC_R7_IMMED;
+    rom[5] = 32*1024;
+    rom[6] = ADD + DST_R2_REG + SRC_R0_REG;
+//    R3 = 48*1024 + 256 + R0 + R1;
+//    mem_[R2] = mem_[R3];
+//    R1 += 1;
+//    if (R1 < 64) goto second;
+//    R0 += 64;
+//    if (R0 < 252*64) goto first;
+
+//    R0 = 32*1024;
+//third: mem_[R0] = 0xff;
+//    R0 += 1;
+//    if (R0 < 32*1024 + (4*512/8)) goto third;
+
+//    R0 = 48*1024 - 4*(512/8);
+//fourth: mem_[R0] = 0xff;
+//    R0 += 1;
+//    if (R0 < 48*1024) goto fourth;
+
+//    R0 = 32*1024 + 4*(512/8);
+//fifth: mem_[R0] |= 0xf0;
+//    R1 = R0 + 63;
+//    mem_[R1] |= 0x0f;
+//    R0 += 512/8;
+//    if (R0 < 32*1024 + 252*(512/8)) goto fifth;
+
 
     run_lock_.store(false);
 }
@@ -135,7 +187,6 @@ void EmulatorPDP11::RunWorker() {
         EmulatorPDP11::step_and_list(false);
     }
     run_lock_.store(false);
-    regs_[3] = 1235; // DEBUG
 }
 
 void EmulatorPDP11::PushOperation(QString str) {
@@ -190,9 +241,18 @@ void EmulatorPDP11::op_jsr(void* a, void*b){return;}
 void EmulatorPDP11::op_clr(void* a, void*b){return;}
 void EmulatorPDP11::op_com(void* a, void*b){return;}
 
-void EmulatorPDP11::op_inc(void* addr, void* unused) {
-    if (addr > ROM_ADDR)
+void EmulatorPDP11::op_inc(void* addr, void* unused) {    
+    if (addr > ROM_ADDR && addr < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "inc error, addr:" << addr << ", ROM_ADDR:" << (void*) ROM_ADDR;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
+
+
 
     psw_N_ = WORD_MSB(*(uint16_t*)addr);
     psw_Z_ = *(uint16_t*)addr;
@@ -201,8 +261,15 @@ void EmulatorPDP11::op_inc(void* addr, void* unused) {
 }
 
 void EmulatorPDP11::op_dec(void* addr, void* unused) {
-    if (addr > ROM_ADDR)
+    if (addr > ROM_ADDR && addr < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "dec error, addr:" << addr << ", ROM_ADDR:" << (void*) ROM_ADDR;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
 
     psw_N_ = WORD_MSB(*(uint16_t*)addr);
     psw_Z_ = *(uint16_t*)addr;
@@ -234,8 +301,24 @@ void EmulatorPDP11::op_sob(void* reg, void* n) {
 }
 
 void EmulatorPDP11::op_mov(void* src, void* dst) {
-    if (dst > ROM_ADDR)
+    if (dst > ROM_ADDR && dst < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "mov error, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
+
+
+    //debug
+    std::stringstream ss;
+    ss << "mov, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
+    std::string name = ss.str();
+    PushOperation(name.c_str());
+
+
 
     *(uint16_t*)dst = *(uint16_t*)src;
     psw_N_ = WORD_MSB(*(uint16_t*)dst);
@@ -249,8 +332,15 @@ void EmulatorPDP11::op_bic(void* a, void*b){return;}
 void EmulatorPDP11::op_bis(void* a, void*b){return;}
 
 void EmulatorPDP11::op_add(void* src, void* dst) {
-    if (dst > ROM_ADDR)
+    if (dst > ROM_ADDR && dst < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "mov error, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
 
     psw_V_ = (uint32_t)(*(uint16_t*)dst) + (uint32_t)(*(uint16_t*)src) !=
             (uint32_t)(*(uint16_t*)dst + *(uint16_t*)src);
@@ -260,8 +350,15 @@ void EmulatorPDP11::op_add(void* src, void* dst) {
 }
 
 void EmulatorPDP11::op_movb(void* src, void* dst) {
-    if (dst > ROM_ADDR)
+    if (dst > ROM_ADDR && dst < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "mov error, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
 
     *(uint8_t*)dst = *(uint8_t*)src;
     psw_N_ = BYTE_MSB(*(uint8_t*)dst);
@@ -276,8 +373,15 @@ void EmulatorPDP11::op_bicb(void* a, void*b){return;}
 void EmulatorPDP11::op_bisb(void* a, void*b){return;}
 
 void EmulatorPDP11::op_sub(void* src, void* dst) {
-    if (dst > ROM_ADDR)
+    if (dst > ROM_ADDR && dst < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "mov error, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
 
     psw_V_ = (uint32_t)(*(uint16_t*)dst) - (uint32_t)(*(uint16_t*)src) !=
             (uint32_t)(*(uint16_t*)dst - *(uint16_t*)src);
@@ -300,8 +404,15 @@ void EmulatorPDP11::op_clrb(void* a, void*b){return;}
 void EmulatorPDP11::op_comb(void* a, void*b){return;}
 
 void EmulatorPDP11::op_incb(void* addr, void* unused) {
-    if (addr > ROM_ADDR)
+    if (addr > ROM_ADDR && addr < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "incb error, addr:" << (char*)addr - mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
 
     psw_V_ = ((uint16_t)(*(uint8_t*)addr) + 1) != (uint16_t)(*(uint8_t*)addr + 1);
     (*(uint8_t*)addr)++;
@@ -310,8 +421,15 @@ void EmulatorPDP11::op_incb(void* addr, void* unused) {
 }
 
 void EmulatorPDP11::op_decb(void* addr, void* unused) {
-    if (addr > ROM_ADDR)
+    if (addr > ROM_ADDR && addr < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "incb error, addr:" << (char*)addr - mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
         throw;
+    }
 
     psw_V_ = ((uint16_t)(*(uint8_t*)addr) - 1) != (uint16_t)(*(uint8_t*)addr - 1);
     (*(uint8_t*)addr)--;

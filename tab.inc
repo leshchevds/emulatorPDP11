@@ -12,6 +12,10 @@
     };
     //DISCUSS? decode_zero_op -> NULL
 
+
+
+
+
     instr_t tab[86] = {
         {0000000,   "halt", &EmulatorPDP11::decode_zero_op, &EmulatorPDP11::op_halt},
         {0000001,   "wait", &EmulatorPDP11::decode_zero_op, &EmulatorPDP11::op_wait},
