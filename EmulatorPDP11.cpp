@@ -73,6 +73,7 @@ void EmulatorPDP11::Reset() {
 
     pc_ = 48 * 1024; // ROM start address
     regs_[0] = regs_[1] = regs_[2] = regs_[3] = regs_[4] = regs_[5] = 0;
+    psw_C_ = psw_N_ = psw_V_ = psw_Z_ = 0;
 
     OpListModel_->removeRows(0, OpListModel_->rowCount());
 // filling in ROM
@@ -86,7 +87,7 @@ void EmulatorPDP11::Reset() {
     //TODO: op codes are to be written here
 
     int R0, R1, R2, R3;
-    R0 = 4*64;
+/*    R0 = 4*64;
 first:
     R1 = 0;
 second:
@@ -97,7 +98,7 @@ second:
     if (R1 < 64) goto second;
     R0 += 64;
     if (R0 < 252*64) goto first;
-
+*/
     R0 = 32*1024;
 third:
     mem_[R0] = 0xff;
@@ -124,23 +125,25 @@ fifth:
             ADD = 0060000,
             SUB = 0160000,
             CMP = 0020000,
-            BNE = 0x10,
+            BNE = 0x0200,
+            BIS = 0050000, // ???
 
             DST_R0_REG =   0000000,
             DST_R1_REG =   0000001,
             DST_R2_REG =   0000002,
             DST_R3_REG =   0000003,
             DST_R7_IMMED = 0000027,
+            DST_R2_INDIR = 0000012,
+            DST_R0_INDIR = 0000010,
+            DST_R1_INDIR = 0000011,
 
             SRC_R0_REG =   0000000,
             SRC_R1_REG =   0000100,
             SRC_R2_REG =   0000200,
-            SRC_R7_IMMED = 0002700
+            SRC_R7_IMMED = 0002700,
+            SRC_R3_INDIR = 0001300
+
             ;
-
-
-    rom[2] = MOV + DST_R1_REG + SRC_R7_IMMED;
-    rom[3] = 0;
 
 //    R0 = 4*64;
     rom[0] = MOV + DST_R0_REG + SRC_R7_IMMED;
@@ -154,29 +157,78 @@ fifth:
     rom[4] = MOV + DST_R2_REG + SRC_R7_IMMED;
     rom[5] = 32*1024;
     rom[6] = ADD + DST_R2_REG + SRC_R0_REG;
+    rom[7] = ADD + DST_R2_REG + SRC_R1_REG;
 //    R3 = 48*1024 + 256 + R0 + R1;
+    rom[8] = MOV + DST_R3_REG + SRC_R7_IMMED;
+    rom[9] = 48*1024 + 256;
+    rom[10] = ADD + DST_R3_REG + SRC_R0_REG;
+    rom[11] = ADD + DST_R3_REG + SRC_R1_REG;
 //    mem_[R2] = mem_[R3];
+    rom[12] = MOV + DST_R2_INDIR + SRC_R3_INDIR;
 //    R1 += 1;
+    rom[13] = ADD + DST_R1_REG + SRC_R7_IMMED;
+    rom[14] = 1;
 //    if (R1 < 64) goto second;
+    rom[15] = CMP + SRC_R1_REG + DST_R7_IMMED;
+    rom[16] = 64;
+    rom[17] = BNE + (uint8_t)(int8_t)(-(18-4));
 //    R0 += 64;
+    rom[18] = ADD + DST_R0_REG + SRC_R7_IMMED;
+    rom[19] = 64;
 //    if (R0 < 252*64) goto first;
+    rom[20] = CMP + SRC_R0_REG + DST_R7_IMMED;
+    rom[21] = 252*64;
+    rom[22] = BNE + (uint8_t)(int8_t)(-(23-2));
 
 //    R0 = 32*1024;
+    rom[23] = MOV + DST_R0_REG + SRC_R7_IMMED;
+    rom[24] = 32*1024;
 //third: mem_[R0] = 0xff;
+    rom[25] = MOV + DST_R0_INDIR + SRC_R7_IMMED;
+    rom[26] = 0xff;
 //    R0 += 1;
+    rom[27] = ADD + DST_R0_REG + SRC_R7_IMMED;
+    rom[28] = 1;
 //    if (R0 < 32*1024 + (4*512/8)) goto third;
+    rom[29] = CMP + SRC_R0_REG + DST_R7_IMMED;
+    rom[30] = 32*1024 + (4*512/8);
+    rom[31] = BNE + (uint8_t)(int8_t)(-(32-25));
 
 //    R0 = 48*1024 - 4*(512/8);
+    rom[32] = MOV + DST_R0_REG + SRC_R7_IMMED;
+    rom[33] = 48*1024 - 4*(512/8);
 //fourth: mem_[R0] = 0xff;
+    rom[34] = MOV + DST_R0_INDIR + SRC_R7_IMMED;
+    rom[35] = 0xff;
 //    R0 += 1;
+    rom[36] = ADD + DST_R0_REG + SRC_R7_IMMED;
+    rom[37] = 1;
 //    if (R0 < 48*1024) goto fourth;
+    rom[38] = CMP + SRC_R0_REG + DST_R7_IMMED;
+    rom[39] = 48*1024;
+    rom[40] = BNE + (uint8_t)(int8_t)(-(41-34));
 
 //    R0 = 32*1024 + 4*(512/8);
+    rom[41] = MOV + DST_R0_REG + SRC_R7_IMMED;
+    rom[42] = 32*1024 + 4*(512/8);
 //fifth: mem_[R0] |= 0xf0;
+    rom[43] = BIS + DST_R0_INDIR + SRC_R7_IMMED;
+    rom[44] = 0xf0;
 //    R1 = R0 + 63;
+    rom[45] = MOV + DST_R1_REG + SRC_R7_IMMED;
+    rom[46] = 63;
+    rom[47] = ADD + DST_R1_REG + SRC_R0_REG;
 //    mem_[R1] |= 0x0f;
+    rom[48] = BIS + DST_R1_INDIR + SRC_R7_IMMED;
+    rom[49] = 0x0f;
 //    R0 += 512/8;
+    rom[50] = ADD + DST_R0_REG + SRC_R7_IMMED;
+    rom[51] = 512/8;
 //    if (R0 < 32*1024 + 252*(512/8)) goto fifth;
+    rom[52] = CMP + SRC_R0_REG + DST_R7_IMMED;
+    rom[53] = 32*1024 + 252*(512/8);
+    rom[54] = BNE + (uint8_t)(int8_t)(-(55-43));
+    rom[55] = 0; // halt
 
 
     run_lock_.store(false);
@@ -200,7 +252,8 @@ void EmulatorPDP11::PushOperation(QString str) {
 }
 
 void EmulatorPDP11::op_halt(void* a, void* b) {
-
+    pc_ -= 2;
+    Stop();
 }
 
 void EmulatorPDP11::op_wait(void* a, void* b) {
@@ -210,14 +263,14 @@ void EmulatorPDP11::op_wait(void* a, void* b) {
 #define BYTE_MSB(byte) (byte>>7)
 #define WORD_MSB(word) (word>>15)
 
-void EmulatorPDP11::op_rti(void* a, void*b){return;}
-void EmulatorPDP11::op_bpt(void* a, void*b){return;}
-void EmulatorPDP11::op_iot(void* a, void*b){return;}
-void EmulatorPDP11::op_reset(void* a, void*b){return;}
-void EmulatorPDP11::op_rtt(void* a, void*b){return;}
-void EmulatorPDP11::op_jmp(void* a, void*b){return;}
-void EmulatorPDP11::op_rts(void* a, void*b){return;}
-void EmulatorPDP11::op_spl(void* a, void*b){return;}
+void EmulatorPDP11::op_rti(void* a, void* b){return;}
+void EmulatorPDP11::op_bpt(void* a, void* b){return;}
+void EmulatorPDP11::op_iot(void* a, void* b){return;}
+void EmulatorPDP11::op_reset(void* a, void* b){return;}
+void EmulatorPDP11::op_rtt(void* a, void* b){return;}
+void EmulatorPDP11::op_jmp(void* a, void* b){return;}
+void EmulatorPDP11::op_rts(void* a, void* b){return;}
+void EmulatorPDP11::op_spl(void* a, void* b){return;}
 void EmulatorPDP11::op_nop(void* a, void*b){return;}
 void EmulatorPDP11::op_clc(void* a, void*b){return;}
 void EmulatorPDP11::op_clv(void* a, void*b){return;}
@@ -230,8 +283,17 @@ void EmulatorPDP11::op_sez(void* a, void*b){return;}
 void EmulatorPDP11::op_sen(void* a, void*b){return;}
 void EmulatorPDP11::op_scc(void* a, void*b){return;}
 void EmulatorPDP11::op_swab(void* a, void*b){return;}
-void EmulatorPDP11::op_br(void* a, void*b){return;}
-void EmulatorPDP11::op_bne(void* a, void*b){return;}
+
+void EmulatorPDP11::op_br(void* a, void*b) {
+    return;
+}
+
+void EmulatorPDP11::op_bne(void* offset, void* unused) {
+    if (psw_Z_ == false) {
+        pc_ += (2 * (int8_t) *((uint8_t*)(&offset)));
+    }
+}
+
 void EmulatorPDP11::op_beq(void* a, void*b){return;}
 void EmulatorPDP11::op_bge(void* a, void*b){return;}
 void EmulatorPDP11::op_blt(void* a, void*b){return;}
@@ -311,25 +373,40 @@ void EmulatorPDP11::op_mov(void* src, void* dst) {
         throw;
     }
 
-
-    //debug
-    std::stringstream ss;
-    ss << "mov, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
-    std::string name = ss.str();
-    PushOperation(name.c_str());
-
-
-
     *(uint16_t*)dst = *(uint16_t*)src;
     psw_N_ = WORD_MSB(*(uint16_t*)dst);
-    psw_Z_ = *(uint16_t*)dst;
+    psw_Z_ = *(uint16_t*)dst == 0;
     psw_V_ = 0;
 }
 
-void EmulatorPDP11::op_cmp(void* a, void*b){return;}
+void EmulatorPDP11::op_cmp(void* src, void* dst) {
+    psw_V_ = (uint32_t)(*(uint16_t*)dst) - (uint32_t)(*(uint16_t*)src) !=
+            (uint32_t)(*(uint16_t*)dst - *(uint16_t*)src);
+    uint16_t val = *(uint16_t*)dst - *(uint16_t*)src;
+    psw_N_ &= WORD_MSB(val);
+    psw_Z_ = !(bool)val;
+}
+
 void EmulatorPDP11::op_bit(void* a, void*b){return;}
 void EmulatorPDP11::op_bic(void* a, void*b){return;}
-void EmulatorPDP11::op_bis(void* a, void*b){return;}
+
+void EmulatorPDP11::op_bis(void* src, void* dst){
+    if (dst > ROM_ADDR && dst < ROM_ADDR + 16*1024) {
+        std::stringstream ss;
+        ss << "bis error, src:" << (char*)src-mem_ << ", dst: " << (char*)dst-mem_;
+        std::string name = ss.str();
+        PushOperation(name.c_str());
+        run_lock_.store(false);
+        return;
+        throw;
+    }
+
+    psw_V_ = (uint32_t)(*(uint16_t*)dst) | (uint32_t)(*(uint16_t*)src) !=
+            (uint32_t)(*(uint16_t*)dst | *(uint16_t*)src);
+    *(uint16_t*)dst |= *(uint16_t*)src;
+    psw_N_ = WORD_MSB(*(uint16_t*)dst);
+    psw_Z_ = *(uint16_t*)dst;
+}
 
 void EmulatorPDP11::op_add(void* src, void* dst) {
     if (dst > ROM_ADDR && dst < ROM_ADDR + 16*1024) {
