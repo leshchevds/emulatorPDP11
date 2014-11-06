@@ -117,8 +117,15 @@ fifth:
     if (R0 < 32*1024 + 252*(512/8)) goto fifth;
 
 
-    ((uint16_t*)mem_)[0] = 0000001;
-    ((uint16_t*)mem_)[1] = 052000000;
+    *(uint16_t*)(mem_+48*1024) = 0010071;
+    *(uint16_t*)(mem_+2+48*1024) = 0070002;
+*(uint16_t*)(mem_+4+48*1024) = 0077000;
+*(uint16_t*)(mem_+6+48*1024) = 0005072;
+*(uint16_t*)(mem_+8+48*1024) = 0140006;
+                        //052000000 is 24 bit number
+                                                    //you should not adress memory in such way
+                                                    //if you thought that decoder will guess where is opcode - it won't
+                                                    //it expects next opcode at mem_+pc_
 
     run_lock_.store(false);
 }
