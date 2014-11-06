@@ -1,5 +1,3 @@
-#ifndef MODES_SELECTOR_INC
-#define MODES_SELECTOR_INC
 
 case 0:
     *ARG = (void*)reg;
@@ -25,13 +23,13 @@ case 5:
     break;
 case 6:
     *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-    opcode << std::hex << *(uint16_t*)ARG;
+    opcode << std::hex << *(uint16_t*)ARG << "]";
     pc_+=2;
     break;
 case 7:
     *ARG = (*(uint16_t*)(mem_+pc_))+mem_+*reg;
-    opcode << std::hex << *(uint16_t*)ARG;
+    opcode << std::hex << *(uint16_t*)ARG << "]";
     *ARG = (*(uint16_t*)(*ARG))+mem_;
     pc_+=2;
     break;
-#endif // MODES_SELECTOR_INC
+
