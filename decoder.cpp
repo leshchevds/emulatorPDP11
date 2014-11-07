@@ -30,7 +30,7 @@ char* mode_temp[64]={
 std::string EmulatorPDP11::decode_zero_op(void** null, void** nill){
     *null = NULL;
     *nill = NULL;
-    pc_+=2;
+    pc_ += 2;
     return std::string();
 }
 std::string EmulatorPDP11::decode_traps(void** dst, void** null){
@@ -39,16 +39,16 @@ std::string EmulatorPDP11::decode_traps(void** dst, void** null){
     *(uint16_t*)dst = instr&(0777);
     std::ostringstream opcode;
     opcode << " 0" << std::oct << *(uint16_t*)dst;
-    pc_+=2;
+    pc_ += 2;
     return opcode.str();
 }
 std::string EmulatorPDP11::decode_half_op(void** dst, void** null){
     *null = NULL;
     std::ostringstream opcode;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
-    opcode <<" "<<mode_temp[instr&(07)];
+    opcode << " " << mode_temp[instr&(07)];
     *dst = &regs_[instr&(07)];
-    pc_+=2;
+    pc_ += 2;
     return opcode.str();
 }
 //TODO handle SP & PC reg modes
@@ -62,12 +62,12 @@ std::string EmulatorPDP11::decode_one_op(void** dst, void** null){
     uint16_t *reg = &regs_[instr&(07)];
 
     if((instr&(07)) != 07){
-        switch((instr&(070))>>3){
+        switch((instr&(070)) >> 3){
             #define ARG dst
             #include "modes_selector.inc"
         }
     }else{
-        switch((instr&(070))>>3){
+        switch((instr&(070)) >> 3){
             #define PC
             #include "modes_selector.inc"
             #undef ARG
@@ -82,17 +82,18 @@ std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     std::ostringstream opcode;
     bool is_byte_instr = instr&0100000;
     uint16_t *reg = &regs_[instr&(07)];
-    *dst = &regs_[(instr&(0700))>>6];
-    opcode <<" "<<mode_temp[(instr&(0700))>>6]<<" "<<mode_temp[instr&(077)];
+    *dst = &regs_[(instr&(0700)) >> 6];
+    opcode << " " << mode_temp[(instr&(0700))>>6]
+           << " " << mode_temp[instr&(077)];
 
     if((instr&(07)) != 07){
-        switch((instr&(070))>>3){
+        switch((instr&(070)) >> 3){
             #define ARG src
             #include "modes_selector.inc"
 
         }
     }else{
-        switch((instr&(070))>>3){
+        switch((instr&(070)) >> 3){
             #define PC
             #include "modes_selector.inc"
             #undef ARG
@@ -107,15 +108,15 @@ std::string EmulatorPDP11::decode_one_pl(void** nn, void** null){
     *(uint16_t*)nn = instr&(077);
     std::ostringstream opcode;
     opcode << " 0" << std::oct << *(uint16_t*)nn;
-    pc_+=2;
+    pc_ += 2;
     return opcode.str();
 }
 std::string EmulatorPDP11::decode_sob(void** reg, void** nn){      //2Lesh: nn is pointer to uint16_t. It is nn. You need *nn for jump! It's not me, it's spec.
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     *(uint16_t*)nn = instr&(077);
-    *(uint16_t**)reg = &regs_[(instr&(0700))>>6];
+    *(uint16_t**)reg = &regs_[(instr&(0700)) >> 6];
     std::ostringstream opcode;
-    opcode << " " << mode_temp[(instr&(0700))>>6]
+    opcode << " " << mode_temp[(instr&(0700)) >> 6]
            << " 0" << std::oct << *(uint16_t*)nn;
 //Achtung!!!
     pc_+=2;
@@ -127,8 +128,8 @@ std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     std::ostringstream opcode;
     bool is_byte_instr = instr&0100000;
     uint16_t *reg = &regs_[instr&(07)];
-    *src = &regs_[(instr&(0700))>>6];
-    opcode <<" "<<mode_temp[instr&(077)];
+    *src = &regs_[(instr&(0700)) >> 6];
+    opcode << " " << mode_temp[instr&(077)];
     if((instr&07) != 7){
         switch((instr&(070))>>3){
             #define ARG dst
@@ -212,17 +213,20 @@ void EmulatorPDP11::step_and_list(bool single){
     int i = RANGES/2;
     int left = 0;
     int right = RANGES - 1;
-    uint16_t opcode = *(uint16_t*)(mem_+pc_);
-    if (opcode == 0177777) { pc_+=2; return; } //nononono David Blain.
+    uint16_t opcode = *(uint16_t*)(mem_ + pc_);
+    if (opcode == 0177777) {
+        pc_ += 2;
+        return;
+    } //nononono David Blain.
     while (true){
         if (ranges_[i] > opcode) {
             right = i;
-            i = (right+left)/2;
+            i = (right + left)/2;
             continue;
         }
         if (ranges_[i+1] <= opcode) {
             left = i;
-            i = (right+left)/2;
+            i = (right + left)/2;
             continue;
         }
         break;
@@ -234,21 +238,21 @@ void EmulatorPDP11::step_and_list(bool single){
     while (true){
         if (tab[i].opcode > masked_opcode) {
             right = i;
-            i = (right+left)/2;
+            i = (right + left)/2;
             continue;
         }
-        if (tab[i+1].opcode <= masked_opcode) {
+        if (tab[i + 1].opcode <= masked_opcode) {
             left = i;
-            i = (right+left)/2;
+            i = (right + left)/2;
             continue;
         }
         break;
     }
     instr_t instr = tab[i];
-    void* arg_a,* arg_b;
+    void* arg_a, *arg_b;
     std::string string_arg = (this->*instr.decoder)(&arg_a, &arg_b);
 
-    (this->*instr.callback)(arg_a,arg_b);
+    (this->*instr.callback)(arg_a, arg_b);
 
     if (single) {
         PushOperation((std::string(instr.instr) + string_arg).c_str());
