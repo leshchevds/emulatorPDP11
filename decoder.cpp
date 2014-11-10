@@ -8,7 +8,6 @@
 #include "operations.h"
 #define RANGES 15
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 char* mode_temp[64]={
     "R0",       "R1",       "R2",       "R3",
     "R4",       "R5",       "SP",       "PC",
@@ -27,14 +26,14 @@ char* mode_temp[64]={
     "@R0[0x",   "@R1[0x",   "@R2[0x",   "@R3[0x",
     "@R4[0x",   "@R5[0x",   "@SP[0x",   "@"
 };
-
+//decoder for operations like halt, without operands
 std::string EmulatorPDP11::decode_zero_op(void** null, void** nill) {
     *null = NULL;
     *nill = NULL;
     pc_ += 2;
     return std::string();
 }
-
+//decoder for traps (trap & emt) opcodes 0104ddd (*dst = pointer to place where is trap placed)
 std::string EmulatorPDP11::decode_traps(void** dst, void** null) {
     *null = NULL;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -44,6 +43,7 @@ std::string EmulatorPDP11::decode_traps(void** dst, void** null) {
     pc_ += 2;
     return opcode.str();
 }
+//decoder for operations with only register operand (like rts 000020R) (*dst = pointer to register R)
 std::string EmulatorPDP11::decode_half_op(void** dst, void** null) {
     *null = NULL;
     std::ostringstream opcode;
@@ -53,7 +53,9 @@ std::string EmulatorPDP11::decode_half_op(void** dst, void** null) {
     pc_ += 2;
     return opcode.str();
 }
-//TODO handle SP & PC reg modes
+//decoder for operations with 6bit operand interpreted like addressing mode
+//here and further instr&some_mask>>some_shift is placed to get corresponding to register number or mode number
+//each switch parsing mode for operand defined as ARG in itself
 std::string EmulatorPDP11::decode_one_op(void** dst, void** null) {
     *null = NULL;
     std::ostringstream opcode;
@@ -69,6 +71,7 @@ std::string EmulatorPDP11::decode_one_op(void** dst, void** null) {
             #include "modes_selector.inc"
         }
     }else{
+        //PC Register is SPECIAL
         switch((instr&(070)) >> 3){
             #define PC
             #include "modes_selector.inc"
@@ -78,6 +81,8 @@ std::string EmulatorPDP11::decode_one_op(void** dst, void** null) {
     }
     return opcode.str();
 }
+//decoder for operations with 6bit operand interpreted like addressing mode for src and 3bit reg number for dst
+//oNH stand for one&half
 std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     pc_ += 2;
@@ -104,7 +109,7 @@ std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     }
     return opcode.str();
 }
-
+//decoder for operations with 6bit operand interpreted unsigned int
 std::string EmulatorPDP11::decode_one_pl(void** nn, void** null){
     *null = NULL;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -114,7 +119,9 @@ std::string EmulatorPDP11::decode_one_pl(void** nn, void** null){
     pc_ += 2;
     return opcode.str();
 }
-
+//decoder for subtract one and branch (0077RNN)
+//*reg = pointer to register R
+//*nn = NN as defined in spec
 std::string EmulatorPDP11::decode_sob(void** reg, void** nn){      //2Lesh: nn is pointer to uint16_t. It is nn. You need *nn for jump! It's not me, it's spec.
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     *(uint16_t*)nn = instr&(077);
@@ -126,7 +133,8 @@ std::string EmulatorPDP11::decode_sob(void** reg, void** nn){      //2Lesh: nn i
     pc_+=2;
     return opcode.str();
 }
-
+//decoder for xor operation with
+//6bit operand interpreted like addressing mode for dst and 3bit reg number for src
 std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     pc_ += 2;
@@ -152,7 +160,8 @@ std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     pc_+=2;
     return opcode.str();
 }
-
+//decoder for branches
+//*dst = pointer to place in memory for jump
 std::string EmulatorPDP11::decode_branch(void** dst, void** null){
     *null = NULL;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -162,7 +171,8 @@ std::string EmulatorPDP11::decode_branch(void** dst, void** null){
     pc_+=2;
     return opcode.str();
 }
-
+//decoder for operations with two 6bit operands interpreted like addressing mode for src and dst
+//017ssdd
 std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     std::ostringstream opcode;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
