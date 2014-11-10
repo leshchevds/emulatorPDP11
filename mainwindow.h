@@ -5,7 +5,13 @@
 
 #include <QMainWindow>
 #include <QFuture>
+#include <QStringListModel>
+#include <QtConcurrentRun>
+#include <QThread>
+#include <QMetaType> // without this line methods from threads emit errors
+#include <atomic>
 
+class EmulatorPDP11;
 
 namespace Ui {
 class MainWindow;
@@ -34,8 +40,21 @@ private:
     EmulatorPDP11 *emul_ = 0;
     QFuture<void> future_;
     bool isWorking_ = 1;
+    QStringListModel *OpListModel_;
 
+    std::atomic_bool run_lock_;
+
+    bool runApproved_;
+
+    void PushOperation(std::string str);
+    void OpListReset();
     void UpdateFrames();
+    void Step();
+    void StepWorker();
+    void Run();
+    void Stop();
+    void RunWorker();
+
 };
 
 #endif // MAINWINDOW_H

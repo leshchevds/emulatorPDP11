@@ -27,13 +27,15 @@ char* mode_temp[64]={
     "@R0[0x",   "@R1[0x",   "@R2[0x",   "@R3[0x",
     "@R4[0x",   "@R5[0x",   "@SP[0x",   "@"
 };
-std::string EmulatorPDP11::decode_zero_op(void** null, void** nill){
+
+std::string EmulatorPDP11::decode_zero_op(void** null, void** nill) {
     *null = NULL;
     *nill = NULL;
     pc_ += 2;
     return std::string();
 }
-std::string EmulatorPDP11::decode_traps(void** dst, void** null){
+
+std::string EmulatorPDP11::decode_traps(void** dst, void** null) {
     *null = NULL;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     *(uint16_t*)dst = instr&(0777);
@@ -42,7 +44,7 @@ std::string EmulatorPDP11::decode_traps(void** dst, void** null){
     pc_ += 2;
     return opcode.str();
 }
-std::string EmulatorPDP11::decode_half_op(void** dst, void** null){
+std::string EmulatorPDP11::decode_half_op(void** dst, void** null) {
     *null = NULL;
     std::ostringstream opcode;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -52,7 +54,7 @@ std::string EmulatorPDP11::decode_half_op(void** dst, void** null){
     return opcode.str();
 }
 //TODO handle SP & PC reg modes
-std::string EmulatorPDP11::decode_one_op(void** dst, void** null){
+std::string EmulatorPDP11::decode_one_op(void** dst, void** null) {
     *null = NULL;
     std::ostringstream opcode;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -86,13 +88,13 @@ std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     opcode << " " << mode_temp[(instr&(0700))>>6]
            << " " << mode_temp[instr&(077)];
 
-    if((instr&(07)) != 07){
+    if ((instr&(07)) != 07) {
         switch((instr&(070)) >> 3){
             #define ARG src
             #include "modes_selector.inc"
 
         }
-    }else{
+    } else {
         switch((instr&(070)) >> 3){
             #define PC
             #include "modes_selector.inc"
@@ -102,6 +104,7 @@ std::string EmulatorPDP11::decode_oNh_op(void** dst, void** src){
     }
     return opcode.str();
 }
+
 std::string EmulatorPDP11::decode_one_pl(void** nn, void** null){
     *null = NULL;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -111,6 +114,7 @@ std::string EmulatorPDP11::decode_one_pl(void** nn, void** null){
     pc_ += 2;
     return opcode.str();
 }
+
 std::string EmulatorPDP11::decode_sob(void** reg, void** nn){      //2Lesh: nn is pointer to uint16_t. It is nn. You need *nn for jump! It's not me, it's spec.
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     *(uint16_t*)nn = instr&(077);
@@ -122,6 +126,7 @@ std::string EmulatorPDP11::decode_sob(void** reg, void** nn){      //2Lesh: nn i
     pc_+=2;
     return opcode.str();
 }
+
 std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
     pc_ += 2;
@@ -147,6 +152,7 @@ std::string EmulatorPDP11::decode_xor(void** dst, void** src){
     pc_+=2;
     return opcode.str();
 }
+
 std::string EmulatorPDP11::decode_branch(void** dst, void** null){
     *null = NULL;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -156,6 +162,7 @@ std::string EmulatorPDP11::decode_branch(void** dst, void** null){
     pc_+=2;
     return opcode.str();
 }
+
 std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     std::ostringstream opcode;
     uint16_t instr = *(uint16_t*)(mem_ + pc_);
@@ -194,7 +201,6 @@ std::string EmulatorPDP11::decode_two_op(void** src, void** dst){
     return opcode.str();
 }
 
-
 uint16_t ranges_[]={
     0000000,    0000100,    0000200,   0000240,
     0000300,    0000400,    0004000,   0005000,
@@ -209,14 +215,14 @@ uint16_t masks_[]= {
     0xff00,     0177700,    0170000,    0177777
 };
 
-void EmulatorPDP11::step_and_list(bool single){
+std::string EmulatorPDP11::step_and_list() {
     int i = RANGES/2;
     int left = 0;
     int right = RANGES - 1;
     uint16_t opcode = *(uint16_t*)(mem_ + pc_);
     if (opcode == 0177777) {
         pc_ += 2;
-        return;
+        return "opcode == 0177777";
     } //nononono David Blain.
     while (true){
         if (ranges_[i] > opcode) {
@@ -254,8 +260,5 @@ void EmulatorPDP11::step_and_list(bool single){
 
     (this->*instr.callback)(arg_a, arg_b);
 
-    if (single) {
-        PushOperation((std::string(instr.instr) + string_arg).c_str());
-        run_lock_.store(false);
-    }
+    return std::string(instr.instr) + string_arg;
 }

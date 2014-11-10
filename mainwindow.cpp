@@ -17,18 +17,73 @@ MainWindow::MainWindow(QWidget *parent) :
         future_ =  QtConcurrent::run(this, &MainWindow::UpdateFrames);
     }
 
-
-    ui->OpsListView->setModel(emul_->OpListModel_);
+    qRegisterMetaType<QVector<int> >("QVector<int>");
+    OpListModel_ = new QStringListModel();
+    ui->OpsListView->setModel(OpListModel_);
+    run_lock_ = false;
 }
 
 MainWindow::~MainWindow() {
     isWorking_ = 0;
+    runApproved_ = false;
+    bool expected = false;
+    while (!run_lock_.compare_exchange_strong(expected, true)) {
+        expected = false;
+    }
+
     if (emul_) {
        future_.waitForFinished();
        delete emul_;
     }
     delete ui;
 }
+
+void MainWindow::PushOperation(std::string str) {
+    OpListModel_->insertRow(0);
+    QModelIndex index = OpListModel_->index(0);
+    const int MAX_ROWS = 10;
+    if (OpListModel_->rowCount() == MAX_ROWS) {
+        OpListModel_->removeRow(MAX_ROWS - 1);
+    }
+    OpListModel_->setData(index, str.c_str());
+}
+
+void MainWindow::OpListReset() {
+    OpListModel_->removeRows(0, OpListModel_->rowCount());
+}
+
+
+void MainWindow::Step() {
+    bool expected = false;
+    if (run_lock_.compare_exchange_strong(expected, true)) {
+        QtConcurrent::run(this, &MainWindow::StepWorker);
+    }
+}
+
+void MainWindow::StepWorker() {
+    PushOperation(emul_->step_and_list());
+    run_lock_.store(false);
+}
+
+void MainWindow::Run() {
+    bool expected = false;
+    if (run_lock_.compare_exchange_strong(expected, true)) {
+        runApproved_ = true;
+        QtConcurrent::run(this, &MainWindow::RunWorker);
+    }
+}
+
+void MainWindow::Stop() {
+    runApproved_ = false;
+}
+
+void MainWindow::RunWorker() {
+    while (runApproved_) {
+        emul_->step_and_list();
+    }
+    run_lock_.store(false);
+}
+
 
 class Thread : public QThread
 {
@@ -70,22 +125,24 @@ void MainWindow::UpdateFrames() {
         ui->VFlagLCD->display(emul_->VFlag());
         ui->CFlagLCD->display(emul_->CFlag());
 
-        Thread::msleep(100);
+        Thread::msleep(20);
     }
 }
 
 void MainWindow::on_ResetButton_clicked() {
+    Stop();
     emul_->Reset();
+    OpListReset();
 }
 
 void MainWindow::on_StepButton_clicked() {
-    emul_->Step();
+    Step();
 }
 
 void MainWindow::on_GoButton_clicked() {
-    emul_->Run();
+    Run();
 }
 
 void MainWindow::on_StopButton_clicked() {
-    emul_->Stop();
+    Stop();
 }

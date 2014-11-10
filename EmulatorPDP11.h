@@ -1,23 +1,20 @@
 #ifndef EMULATORPDP11_H
 #define EMULATORPDP11_H
 
+
 #include <stdint.h>
 #include <string>
-#include <functional>
-#include <atomic>
-#include <QStringListModel>
 
 class EmulatorPDP11;
-
 
 class EmulatorPDP11 {
 public:
     EmulatorPDP11();
-    explicit EmulatorPDP11(const char* source, size_t count = 16*1024);
+    EmulatorPDP11(const char* source, size_t count = 16*1024);
     ~EmulatorPDP11();
 
     char* videomem();
-    size_t WriteROM(const char* source, size_t count = 16*1024);
+    void WriteROM(std::string source, size_t count = 16*1024);
 
     uint16_t reg(uint8_t num) {
         if (num < 8) {
@@ -32,20 +29,11 @@ public:
     inline bool VFlag() {return psw_V_;}
     inline bool CFlag() {return psw_C_;}
 
-
-    bool isRunning() {
-        return run_lock_;
-    }
-
-    void Run();
-    void Stop();
-    void Step();
     void Reset();
+    std::string step_and_list();
 
     // could require up to 3 words allocated NOT CONST!!! DECODER CHANGING PC!!!
     std::string Decode(uint16_t* pc);
-
-    QStringListModel *OpListModel_;
 private:
     char mem_[64*1024];
     char* const rom_ = mem_ + 48*1024;
@@ -61,16 +49,10 @@ private:
     bool& psw_V_ = psw_[2];
     bool& psw_C_ = psw_[3];
 
-    bool runApproved_;
-
 #include "decoders.inc"
 #include "operations.inc"
 #include "tab.inc"
-    void step_and_list(bool single = true);
-    void RunWorker();
 
-    std::atomic_bool run_lock_;
-    void PushOperation(QString str);
     inline bool CheckInROM(void* addr);
 };
 
