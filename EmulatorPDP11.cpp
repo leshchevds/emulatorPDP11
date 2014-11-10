@@ -270,7 +270,12 @@ void EmulatorPDP11::op_rtt(void* a, void* b) {return;}
 void EmulatorPDP11::op_jmp(void* a, void* b) {return;}
 void EmulatorPDP11::op_rts(void* a, void* b) {return;}
 void EmulatorPDP11::op_spl(void* a, void* b) {return;}
-void EmulatorPDP11::op_nop(void* a, void* b) {return;}
+
+void EmulatorPDP11::op_nop(void* a, void* b)
+{
+    return;
+}
+
 void EmulatorPDP11::op_clc(void* a, void* b) {return;}
 void EmulatorPDP11::op_clv(void* a, void* b) {return;}
 void EmulatorPDP11::op_clz(void* a, void* b) {return;}
@@ -299,7 +304,20 @@ void EmulatorPDP11::op_blt(void* a, void* b) {return;}
 void EmulatorPDP11::op_bgt(void* a, void* b) {return;}
 void EmulatorPDP11::op_ble(void* a, void* b) {return;}
 void EmulatorPDP11::op_jsr(void* a, void* b) {return;}
-void EmulatorPDP11::op_clr(void* a, void* b) {return;}
+
+void EmulatorPDP11::op_clr(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("clr in rom");
+        run_lock_.store(false);
+        return;
+    }
+
+    psw_Z_ = 1;
+    psw_C_ = psw_N_ = psw_V_ = 0;
+    *(uint16_t*)addr = 0;
+}
+
 void EmulatorPDP11::op_com(void* a, void* b) {return;}
 
 void EmulatorPDP11::op_inc(void* addr, void* unused) {    
@@ -328,10 +346,54 @@ void EmulatorPDP11::op_dec(void* addr, void* unused) {
     (*(uint16_t*)addr)--;
 }
 
-void EmulatorPDP11::op_neg(void* a, void* b) {return;}
-void EmulatorPDP11::op_adc(void* a, void* b) {return;}
-void EmulatorPDP11::op_sbc(void* a, void* b) {return;}
-void EmulatorPDP11::op_tst(void* a, void* b) {return;}
+void EmulatorPDP11::op_neg(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("neg to rom");
+        return;
+    }
+
+    psw_V_ = (*(uint16_t*)addr) & (1<<15);
+    psw_N_ = BYTE_MSB(*(uint16_t*)addr);
+    psw_C_ = psw_Z_ = *(uint16_t*)addr;
+}
+
+void EmulatorPDP11::op_adc(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("adc to rom");
+        return;
+    }
+
+    psw_V_ = (uint32_t)(*(uint16_t*)addr) + (uint32_t)psw_C_ !=
+            (uint32_t)(*(uint16_t*)addr + (uint16_t)psw_C_);
+    *(uint16_t*)addr += psw_C_;
+    psw_N_ = WORD_MSB(*(uint16_t*)addr);
+    psw_Z_ = *(uint16_t*)addr;
+}
+
+void EmulatorPDP11::op_sbc(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("sbc to rom");
+        return;
+    }
+
+    psw_V_ = (uint32_t)(*(uint16_t*)addr) - (uint32_t)psw_C_ !=
+            (uint32_t)(*(uint16_t*)addr - (uint16_t)psw_C_);
+    *(uint16_t*)addr -= psw_C_;
+    psw_N_ = WORD_MSB(*(uint16_t*)addr);
+    psw_Z_ = *(uint16_t*)addr;
+}
+
+
+void EmulatorPDP11::op_tst(void* addr, void* b)
+{
+    psw_V_ = psw_C_ = 0;
+    psw_N_ = WORD_MSB(*(uint16_t*)addr);
+    psw_Z_ = *(uint16_t*)addr;
+}
+
 void EmulatorPDP11::op_ror(void* a, void* b) {return;}
 void EmulatorPDP11::op_rol(void* a, void* b) {return;}
 void EmulatorPDP11::op_asr(void* a, void* b) {return;}
@@ -443,10 +505,24 @@ void EmulatorPDP11::op_bcc(void* a, void* b) {return;}
 void EmulatorPDP11::op_bcs(void* a, void* b) {return;}
 void EmulatorPDP11::op_emt(void* a, void* b) {return;}
 void EmulatorPDP11::op_sys(void* a, void* b) {return;}
-void EmulatorPDP11::op_clrb(void* a, void* b) {return;}
+
+void EmulatorPDP11::op_clrb(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("clrb in rom");
+        run_lock_.store(false);
+        return;
+    }
+
+    psw_Z_ = 1;
+    psw_C_ = psw_N_ = psw_V_ = 0;
+    *(uint8_t*)addr = 0;
+}
+
 void EmulatorPDP11::op_comb(void* a, void* b) {return;}
 
-void EmulatorPDP11::op_incb(void* addr, void* unused) {
+void EmulatorPDP11::op_incb(void* addr, void* unused)
+{
     if (CheckInROM(addr)) {
         PushOperation("incb to rom");
         return;
@@ -470,10 +546,54 @@ void EmulatorPDP11::op_decb(void* addr, void* unused) {
     psw_Z_ = *(uint8_t*)addr;
 }
 
-void EmulatorPDP11::op_negb(void* a, void* b) {return;}
-void EmulatorPDP11::op_adcb(void* a, void* b) {return;}
-void EmulatorPDP11::op_sbcb(void* a, void* b) {return;}
-void EmulatorPDP11::op_tstb(void* a, void* b) {return;}
+void EmulatorPDP11::op_negb(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("negb to rom");
+        return;
+    }
+
+    psw_V_ = (*(uint8_t*)addr) & (1<<7);
+    psw_N_ = BYTE_MSB(*(uint8_t*)addr);
+    psw_C_ = psw_Z_ = *(uint8_t*)addr;
+}
+
+void EmulatorPDP11::op_adcb(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("adcb to rom");
+        return;
+    }
+
+    psw_V_ = (uint16_t)(*(uint8_t*)addr) + (uint16_t)psw_C_ !=
+            (uint16_t)(*(uint8_t*)addr + (uint8_t)psw_C_);
+    *(uint8_t*)addr += psw_C_;
+    psw_N_ = BYTE_MSB(*(uint8_t*)addr);
+    psw_Z_ = *(uint8_t*)addr;
+}
+
+void EmulatorPDP11::op_sbcb(void* addr, void* b)
+{
+    if (CheckInROM(addr)) {
+        PushOperation("sbcb to rom");
+        return;
+    }
+
+    psw_V_ = (uint16_t)(*(uint8_t*)addr) - (uint16_t)psw_C_ !=
+            (uint16_t)(*(uint8_t*)addr - (uint8_t)psw_C_);
+    *(uint8_t*)addr -= psw_C_;
+    psw_N_ = BYTE_MSB(*(uint8_t*)addr);
+    psw_Z_ = *(uint8_t*)addr;
+}
+
+
+void EmulatorPDP11::op_tstb(void* addr, void* b)
+{
+    psw_V_ = psw_C_ = 0;
+    psw_N_ = BYTE_MSB(*(uint8_t*)addr);
+    psw_Z_ = *(uint8_t*)addr;
+}
+
 void EmulatorPDP11::op_rorb(void* a, void* b) {return;}
 void EmulatorPDP11::op_rolb(void* a, void* b) {return;}
 void EmulatorPDP11::op_asrb(void* a, void* b) {return;}
