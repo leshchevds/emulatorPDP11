@@ -95,11 +95,8 @@ void EmulatorPDP11::op_bgt(void* a, void* b) {return;}
 void EmulatorPDP11::op_ble(void* a, void* b) {return;}
 void EmulatorPDP11::op_jsr(void* a, void* b) {return;}
 
-void EmulatorPDP11::op_clr(void* addr, void* b)
-{
+void EmulatorPDP11::op_clr(void* addr, void* b) {
     if (CheckInROM(addr)) {
-        PushOperation("clr in rom");
-        run_lock_.store(false);
         return;
     }
 
@@ -132,10 +129,8 @@ void EmulatorPDP11::op_dec(void* addr, void* unused) {
     (*(uint16_t*)addr)--;
 }
 
-void EmulatorPDP11::op_neg(void* addr, void* b)
-{
+void EmulatorPDP11::op_neg(void* addr, void* b) {
     if (CheckInROM(addr)) {
-        PushOperation("neg to rom");
         return;
     }
 
@@ -147,7 +142,6 @@ void EmulatorPDP11::op_neg(void* addr, void* b)
 void EmulatorPDP11::op_adc(void* addr, void* b)
 {
     if (CheckInROM(addr)) {
-        PushOperation("adc to rom");
         return;
     }
 
@@ -161,7 +155,6 @@ void EmulatorPDP11::op_adc(void* addr, void* b)
 void EmulatorPDP11::op_sbc(void* addr, void* b)
 {
     if (CheckInROM(addr)) {
-        PushOperation("sbc to rom");
         return;
     }
 
@@ -288,8 +281,6 @@ void EmulatorPDP11::op_sys(void* a, void* b) {return;}
 void EmulatorPDP11::op_clrb(void* addr, void* b)
 {
     if (CheckInROM(addr)) {
-        PushOperation("clrb in rom");
-        run_lock_.store(false);
         return;
     }
 
@@ -326,7 +317,6 @@ void EmulatorPDP11::op_decb(void* addr, void* unused) {
 void EmulatorPDP11::op_negb(void* addr, void* b)
 {
     if (CheckInROM(addr)) {
-        PushOperation("negb to rom");
         return;
     }
 
@@ -338,7 +328,6 @@ void EmulatorPDP11::op_negb(void* addr, void* b)
 void EmulatorPDP11::op_adcb(void* addr, void* b)
 {
     if (CheckInROM(addr)) {
-        PushOperation("adcb to rom");
         return;
     }
 
@@ -352,7 +341,6 @@ void EmulatorPDP11::op_adcb(void* addr, void* b)
 void EmulatorPDP11::op_sbcb(void* addr, void* b)
 {
     if (CheckInROM(addr)) {
-        PushOperation("sbcb to rom");
         return;
     }
 

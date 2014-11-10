@@ -44,7 +44,7 @@ private:
 
     std::atomic_bool run_lock_;
 
-    bool runApproved_;
+    std::atomic_bool runApproved_;
 
     void PushOperation(std::string str);
     void OpListReset();

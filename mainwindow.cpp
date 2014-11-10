@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow() {
     isWorking_ = 0;
-    runApproved_ = false;
+    runApproved_.store(false);
     bool expected = false;
     while (!run_lock_.compare_exchange_strong(expected, true)) {
         expected = false;
@@ -68,17 +68,17 @@ void MainWindow::StepWorker() {
 void MainWindow::Run() {
     bool expected = false;
     if (run_lock_.compare_exchange_strong(expected, true)) {
-        runApproved_ = true;
+        runApproved_.store(true);
         QtConcurrent::run(this, &MainWindow::RunWorker);
     }
 }
 
 void MainWindow::Stop() {
-    runApproved_ = false;
+    runApproved_.store(false);
 }
 
 void MainWindow::RunWorker() {
-    while (runApproved_) {
+    while (runApproved_.load()) {
         emul_->step_and_list();
     }
     run_lock_.store(false);
@@ -125,7 +125,7 @@ void MainWindow::UpdateFrames() {
         ui->VFlagLCD->display(emul_->VFlag());
         ui->CFlagLCD->display(emul_->CFlag());
 
-        Thread::msleep(20);
+        Thread::msleep(40);
     }
 }
 
